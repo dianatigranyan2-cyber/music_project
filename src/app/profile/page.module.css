@@ -1,0 +1,170 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profileHero {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.avatarWrapper {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 3px solid var(--accent-purple);
+}
+
+.profileMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.handle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.bio {
+  font-size: 13px;
+  color: var(--text-dim);
+  max-width: 540px;
+}
+
+.statsRow {
+  display: flex;
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.statVal {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.statLbl {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.tagsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.genreTag {
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background-color: rgba(139, 92, 246, 0.12);
+  border: 1px solid var(--border-accent);
+  color: #d8b4fe;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trackRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.trackRow:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--border-accent);
+}
+
+.idx {
+  font-size: 12px;
+  color: var(--text-dim);
+  width: 16px;
+}
+
+.cover {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.artist {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.timeAgo {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 600px) {
+  .profileHero {
+    flex-direction: column;
+    text-align: center;
+  }
+  .statsRow {
+    justify-content: center;
+  }
+}

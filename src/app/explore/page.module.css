@@ -1,0 +1,275 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  overflow-x: hidden;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Genre Filter Pills */
+.genreRow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+}
+
+.genreRow::-webkit-scrollbar {
+  display: none;
+}
+
+.genrePill {
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.genrePill:hover {
+  color: var(--text-main);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.activePill {
+  background: var(--accent-purple) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+
+/* Section layout */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.stripHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.navBtns {
+  display: flex;
+  gap: 6px;
+}
+
+.navBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.navBtn:hover {
+  background-color: var(--accent-purple);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ─── Horizontal Scroll Strip ─── */
+.hStrip {
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* Extra padding on right so last card shows its peeking edge */
+  padding: 4px 4px 10px 4px;
+}
+
+.hStrip::-webkit-scrollbar {
+  display: none;
+}
+
+/* Each card is a snap child */
+.snapCard {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* ─── Artist Card ─── */
+.artistCard {
+  width: 160px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  transition: border-color 0.2s ease;
+}
+
+.artistCard:hover {
+  border-color: var(--border-accent);
+}
+
+.artistAvatar {
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.artistName {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.artistListeners {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.subscribeBtn {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid var(--border-accent);
+  color: #d8b4fe;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.subscribeBtn:hover {
+  background: var(--accent-purple);
+  color: #fff;
+}
+
+/* ─── Track Card ─── */
+.trackCard {
+  width: 160px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.trackCard:hover {
+  border-color: var(--border-accent);
+}
+
+.activeTrackCard {
+  border-color: var(--accent-purple) !important;
+  background-color: rgba(139, 92, 246, 0.1) !important;
+}
+
+.coverWrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.trackCover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.playOverlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--accent-purple);
+  color: #fff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.trackMeta {
+  display: flex;
+  flex-direction: column;
+}
+
+.trackTitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackArtist {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mobile: smaller cards, still horizontal strips */
+@media (max-width: 600px) {
+  .artistCard {
+    width: 140px;
+  }
+  .trackCard {
+    width: 140px;
+  }
+  .artistAvatar {
+    width: 64px;
+    height: 64px;
+  }
+}

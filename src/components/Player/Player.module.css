@@ -1,0 +1,421 @@
+.playerContainer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background-color: var(--bg-player);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.trackInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 240px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.coverWrapper {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artist {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.likeBtn {
+  font-size: 15px;
+  padding: 4px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.likeBtn:hover {
+  transform: scale(1.15);
+}
+
+.desktopOnly {
+  display: block;
+}
+
+/* Controls Center */
+.controlsSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  max-width: 480px;
+}
+
+.buttonsRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.playPauseBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: var(--text-main);
+  color: #0b0f19;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.playPauseBtn:hover {
+  transform: scale(1.06);
+}
+
+.stepBtn {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.stepBtn:hover {
+  color: var(--text-main);
+}
+
+.smallBtn {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.smallBtn:hover {
+  color: var(--text-main);
+}
+
+.activeMode {
+  color: var(--accent-purple-light) !important;
+}
+
+/* Seek Bar */
+.timeSection {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timeLabel {
+  font-size: 10.5px;
+  font-family: monospace;
+  color: var(--text-dim);
+  width: 32px;
+}
+
+.seekBar {
+  flex: 1;
+  height: 3.5px;
+  appearance: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  background-image: linear-gradient(var(--accent-purple), var(--accent-purple));
+  background-repeat: no-repeat;
+  border-radius: var(--radius-full);
+  outline: none;
+  cursor: pointer;
+}
+
+.seekBar::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Volume Section */
+.volumeSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 240px;
+  justify-content: flex-end;
+}
+
+.volumeBtn {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.volumeBar {
+  width: 70px;
+  height: 3.5px;
+  appearance: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  background-image: linear-gradient(var(--accent-purple-light), var(--accent-purple-light));
+  background-repeat: no-repeat;
+  border-radius: var(--radius-full);
+  outline: none;
+  cursor: pointer;
+}
+
+.volumeBar::-webkit-slider-thumb {
+  appearance: none;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  cursor: pointer;
+}
+
+.listenTogetherBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+}
+
+.liveIndicator {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background-color: #22c55e;
+}
+
+.liveText {
+  font-size: 10px;
+  font-weight: 600;
+  color: #4ade80;
+}
+
+.mobileQuickControls {
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Mobile Expanded Full Player */
+.mobileExpandedOverlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, #131127 0%, #0b0f19 100%);
+  z-index: 200;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.expandedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.closeBtn {
+  font-size: 16px;
+  color: var(--text-muted);
+  padding: 6px;
+}
+
+.expandedHeaderTitle {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.expandedBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  max-width: 360px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.expandedCoverWrapper {
+  width: 220px;
+  height: 220px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+}
+
+.expandedCover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.expandedMeta {
+  text-align: center;
+  width: 100%;
+}
+
+.expandedTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.expandedArtist {
+  font-size: 14px;
+  color: var(--accent-purple-light);
+  font-weight: 500;
+}
+
+.expandedAlbum {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.expandedTimeSection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timeLabelsRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-muted);
+}
+
+.expandedControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 10px;
+}
+
+.expandedPlayPauseBtn {
+  width: 54px;
+  height: 54px;
+  border-radius: var(--radius-full);
+  background: var(--text-main);
+  color: #0b0f19;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+}
+
+.expandedVolume {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.expandedVolume .volumeBar {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .playerContainer {
+    bottom: 54px; /* Stacked right on top of bottom navigation bar */
+    height: 56px;
+    padding: 0 14px;
+    background-color: rgba(15, 22, 38, 0.96);
+  }
+
+  .desktopOnly, .controlsSection, .volumeSection {
+    display: none;
+  }
+
+  .trackInfo {
+    width: auto;
+    flex: 1;
+  }
+
+  .coverWrapper {
+    width: 36px;
+    height: 36px;
+  }
+
+  .title {
+    font-size: 12.5px;
+  }
+
+  .artist {
+    font-size: 11px;
+  }
+
+  .mobileQuickControls {
+    display: flex;
+  }
+
+  .mobilePlayBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--text-main);
+    color: #0b0f19;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .expandBtn {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 6px;
+  }
+}
