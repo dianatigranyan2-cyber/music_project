@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
-import { MOCK_FRIENDS, CURRENT_USER } from '../../data/mockData';
+import { CURRENT_USER } from '../../data/mockData';
 import { usePlayer } from '../../context/PlayerContext';
 import { useAuth } from '../../context/AuthContext';
 import { createClient } from '../../lib/supabase/client';
@@ -16,21 +16,86 @@ interface UserSearchResult {
   bio: string | null;
 }
 
+interface FriendRequest {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  sender: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+interface Friend {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+}
+
 export default function FriendsPage() {
-  const { playTrack, searchQuery: headerSearchQuery } = usePlayer();
+  const { searchQuery: headerSearchQuery } = usePlayer();
   const { user: currentUser } = useAuth();
   const [supabase] = useState(() => createClient());
+  const [requests, setRequests] = useState<FriendRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
+
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(true);
+
+  const [sentRequests, setSentRequests] = useState<string[]>([]);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const [activeTab, setActiveTab] = useState<'my' | 'requests' | 'search'>('my');
-  const [requests, setRequests] = useState([
-    { id: 'r1', name: 'Екатерина Романова', username: 'katya_music', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', mutual: 6 },
-    { id: 'r2', name: 'Денис Мельников', username: 'denis_beats', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', mutual: 14 },
-  ]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Close ⋯ dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Load already sent friend requests
+  useEffect(() => {
+    const loadSentRequests = async () => {
+      if (!currentUser?.id) {
+        setSentRequests([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('friend_requests')
+        .select('receiver_id')
+        .eq('sender_id', currentUser.id)
+        .eq('status', 'pending');
+
+      if (error) {
+        console.error('Error loading sent friend requests:', error);
+        return;
+      }
+
+      setSentRequests(
+        (data || []).map((request) => request.receiver_id)
+      );
+    };
+
+    loadSentRequests();
+  }, [currentUser?.id, supabase]);
 
   // Sync header search query with friends search
   useEffect(() => {
@@ -80,20 +145,196 @@ export default function FriendsPage() {
     return () => clearTimeout(timer);
   }, [searchTerm, currentUser?.id, supabase]);
 
-  const handleAcceptRequest = (id: string) => {
-    setRequests(requests.filter((r) => r.id !== id));
+  // Load real incoming friend requests
+  useEffect(() => {
+    const loadFriendRequests = async () => {
+      if (!currentUser?.id) {
+        setRequests([]);
+        setRequestsLoading(false);
+        return;
+      }
+
+      setRequestsLoading(true);
+
+      const { data, error } = await supabase
+        .from('friend_requests')
+        .select(`
+        id,
+        sender_id,
+        receiver_id,
+        status,
+        created_at,
+        sender:profiles!friend_requests_sender_id_fkey (
+          id,
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+        .eq('receiver_id', currentUser.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading friend requests:', error);
+        setRequests([]);
+      } else {
+        setRequests((data || []) as unknown as FriendRequest[]);
+      }
+
+      setRequestsLoading(false);
+    };
+
+    loadFriendRequests();
+  }, [currentUser?.id, supabase]);
+
+  // Load real friends
+  useEffect(() => {
+    const loadFriends = async () => {
+      if (!currentUser?.id) {
+        setFriends([]);
+        setFriendsLoading(false);
+        return;
+      }
+
+      setFriendsLoading(true);
+
+      // Получаем все принятые заявки, где участвует текущий пользователь
+      const { data: friendships, error: friendshipsError } = await supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id')
+        .eq('status', 'accepted')
+        .or(
+          `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`
+        );
+
+      if (friendshipsError) {
+        console.error('Error loading friends:', friendshipsError);
+        setFriends([]);
+        setFriendsLoading(false);
+        return;
+      }
+
+      // Получаем ID второго пользователя в каждой дружбе
+      const friendIds = (friendships || []).map((friendship) =>
+        friendship.sender_id === currentUser.id
+          ? friendship.receiver_id
+          : friendship.sender_id
+      );
+
+      if (friendIds.length === 0) {
+        setFriends([]);
+        setFriendsLoading(false);
+        return;
+      }
+
+      // Загружаем профили друзей
+      const { data: friendProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, bio')
+        .in('id', friendIds);
+
+      if (profilesError) {
+        console.error('Error loading friend profiles:', profilesError);
+        setFriends([]);
+      } else {
+        setFriends((friendProfiles || []) as Friend[]);
+      }
+
+      setFriendsLoading(false);
+    };
+
+    loadFriends();
+  }, [currentUser?.id, supabase]);
+
+  const handleRemoveFriend = async (friendId: string) => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('friend_requests')
+      .delete()
+      .eq('status', 'accepted')
+      .or(
+        `and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`
+      );
+
+    if (error) {
+      console.error('Error removing friend:', error);
+      return;
+    }
+
+    // Сразу убираем пользователя из списка друзей
+    setFriends((prev) =>
+      prev.filter((friend) => friend.id !== friendId)
+    );
+
+    setSentRequests((prev) =>
+      prev.filter((id) => id !== friendId)
+    );
   };
 
-  const handleDeclineRequest = (id: string) => {
-    setRequests(requests.filter((r) => r.id !== id));
+  const handleSendFriendRequest = async (receiverId: string) => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('friend_requests')
+      .insert({
+        sender_id: currentUser.id,
+        receiver_id: receiverId,
+        status: 'pending',
+      });
+
+    if (error) {
+      console.error('Error sending friend request:', error);
+      return;
+    }
+
+    setSentRequests((prev) => [...prev, receiverId]);
   };
 
-  const filteredFriends = MOCK_FRIENDS.filter(
-    (f) =>
-      f.name.toLowerCase().includes(headerSearchQuery.toLowerCase()) ||
-      f.username.toLowerCase().includes(headerSearchQuery.toLowerCase())
-  );
+  const handleAcceptRequest = async (id: string) => {
+    const { error } = await supabase
+      .from('friend_requests')
+      .update({ status: 'accepted' })
+      .eq('id', id);
 
+    if (error) {
+      console.error('Error accepting friend request:', error);
+      return;
+    }
+
+    setRequests((prev) => prev.filter((request) => request.id !== id));
+  };
+
+  const handleDeclineRequest = async (id: string) => {
+    const { error } = await supabase
+      .from('friend_requests')
+      .delete()
+      .eq('id', id)
+      .eq('status', 'pending');
+
+    if (error) {
+      console.error('Error declining friend request:', error);
+      return;
+    }
+
+    setRequests((prev) =>
+      prev.filter((request) => request.id !== id)
+    );
+  };
+  const filteredFriends = friends.filter((friend) => {
+    const name = friend.display_name || friend.username;
+    const query = headerSearchQuery.toLowerCase();
+
+    return (
+      name.toLowerCase().includes(query) ||
+      friend.username.toLowerCase().includes(query)
+    );
+  });
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -107,7 +348,7 @@ export default function FriendsPage() {
           className={`${styles.tabBtn} ${activeTab === 'my' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('my')}
         >
-          Мои друзья ({MOCK_FRIENDS.length})
+          Мои друзья ({friends.length})
         </button>
         <button
           className={`${styles.tabBtn} ${activeTab === 'requests' ? styles.activeTab : ''}`}
@@ -126,74 +367,146 @@ export default function FriendsPage() {
       {/* Tab: My Friends */}
       {activeTab === 'my' && (
         <div className={styles.friendsList}>
-          {filteredFriends.length > 0 ? (
-            filteredFriends.map((friend) => (
-              <div key={friend.id} className={styles.friendRow}>
-                <div className={styles.avatarWrapper}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={friend.avatarUrl} alt={friend.name} className={styles.avatar} />
-                  <span className={`${styles.onlineDot} ${friend.isOnline ? styles.online : styles.offline}`} />
-                </div>
+          {friendsLoading ? (
+            <div className={styles.emptyState}>
+              <p>Загрузка друзей...</p>
+            </div>
+          ) : filteredFriends.length > 0 ? (
+            filteredFriends.map((friend) => {
+              const friendName =
+                friend.display_name || friend.username;
 
-                <div className={styles.friendInfo}>
-                  <div className={styles.nameLine}>
-                    <span className={styles.name}>{friend.name}</span>
-                    <span className={styles.username}>@{friend.username}</span>
+              const friendAvatar =
+                friend.avatar_url || CURRENT_USER.avatarUrl;
+
+              return (
+                <div key={friend.id} className={styles.friendRow}>
+                  <div className={styles.avatarWrapper}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={friendAvatar}
+                      alt={friendName}
+                      className={styles.avatar}
+                    />
                   </div>
-                  {friend.currentTrack ? (
-                    <span className={styles.listeningStatus}>
-                      🎧 Слушает: <strong>{friend.currentTrack.title}</strong> — {friend.currentTrack.artist}
-                    </span>
-                  ) : (
-                    <span className={styles.statusMsg}>{friend.statusMessage || 'Не в сети'}</span>
-                  )}
-                </div>
 
-                <div className={styles.actions}>
-                  {friend.currentTrack && (
-                    <button
-                      className={styles.listenTogetherBtn}
-                      onClick={() => friend.currentTrack && playTrack(friend.currentTrack)}
+                  <div className={styles.friendInfo}>
+                    <div className={styles.nameLine}>
+                      <span className={styles.name}>
+                        {friendName}
+                      </span>
+
+                      <span className={styles.username}>
+                        @{friend.username}
+                      </span>
+                    </div>
+
+                    <span className={styles.statusMsg}>
+                      {friend.bio || 'Пользователь Melo'}
+                    </span>
+                  </div>
+
+                  <div className={styles.actions}>
+                    <Link
+                      href={`/profile/${friend.username}`}
+                      className={styles.profileLinkBtn}
                     >
-                      Слушать вместе
+                      👤 Профиль
+                    </Link>
+
+                    <button
+                      className={styles.iconActionBtn}
+                      title="Написать"
+                    >
+                      💬
                     </button>
-                  )}
-                  <button className={styles.iconActionBtn} title="Написать">
-                    💬
-                  </button>
+
+                    {/* ⋯ More menu */}
+                    <div className={styles.menuWrapper} ref={openMenuId === friend.id ? menuRef : null}>
+                      <button
+                        className={styles.iconActionBtn}
+                        title="Действия"
+                        onClick={() => setOpenMenuId(openMenuId === friend.id ? null : friend.id)}
+                      >
+                        ⋯
+                      </button>
+                      {openMenuId === friend.id && (
+                        <div className={styles.dropdownMenu}>
+                          <button
+                            className={styles.dropdownDanger}
+                            onClick={() => {
+                              handleRemoveFriend(friend.id);
+                              setOpenMenuId(null);
+                            }}
+                          >
+                            Удалить из друзей
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className={styles.emptyState}>
-              <p>Друзья по запросу «{headerSearchQuery}» не найдены.</p>
+              <p>У вас пока нет друзей.</p>
             </div>
           )}
         </div>
       )}
-
       {/* Tab: Friend Requests */}
       {activeTab === 'requests' && (
         <div className={styles.requestsList}>
-          {requests.length > 0 ? (
-            requests.map((req) => (
-              <div key={req.id} className={styles.requestCard}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={req.avatarUrl} alt={req.name} className={styles.avatar} />
-                <div className={styles.reqInfo}>
-                  <span className={styles.name}>{req.name}</span>
-                  <span className={styles.username}>@{req.username} • {req.mutual} общих друзей</span>
+          {requestsLoading ? (
+            <div className={styles.emptyState}>
+              <p>Загрузка запросов...</p>
+            </div>
+          ) : requests.length > 0 ? (
+            requests.map((req) => {
+              const senderName =
+                req.sender.display_name || req.sender.username;
+
+              const senderAvatar =
+                req.sender.avatar_url || CURRENT_USER.avatarUrl;
+
+              return (
+                <div key={req.id} className={styles.requestCard}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={senderAvatar}
+                    alt={senderName}
+                    className={styles.avatar}
+                  />
+
+                  <div className={styles.reqInfo}>
+                    <span className={styles.name}>
+                      {senderName}
+                    </span>
+
+                    <span className={styles.username}>
+                      @{req.sender.username}
+                    </span>
+                  </div>
+
+                  <div className={styles.reqBtns}>
+                    <button
+                      className={styles.acceptBtn}
+                      onClick={() => handleAcceptRequest(req.id)}
+                    >
+                      Принять
+                    </button>
+
+                    <button
+                      className={styles.declineBtn}
+                      onClick={() => handleDeclineRequest(req.id)}
+                    >
+                      Отклонить
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.reqBtns}>
-                  <button className={styles.acceptBtn} onClick={() => handleAcceptRequest(req.id)}>
-                    Принять
-                  </button>
-                  <button className={styles.declineBtn} onClick={() => handleDeclineRequest(req.id)}>
-                    Отклонить
-                  </button>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className={styles.emptyState}>
               <p>У вас пока нет новых запросов в друзья.</p>
@@ -248,6 +561,10 @@ export default function FriendsPage() {
               const displayName = userResult.display_name || userResult.username;
               const avatar = userResult.avatar_url || CURRENT_USER.avatarUrl;
 
+              const isFriend = friends.some(
+                (friend) => friend.id === userResult.id
+              );
+
               return (
                 <div key={userResult.id} className={styles.friendRow}>
                   <div className={styles.avatarWrapper}>
@@ -269,7 +586,23 @@ export default function FriendsPage() {
                     <Link href={`/profile/${userResult.username}`} className={styles.profileLinkBtn}>
                       👤 Профиль
                     </Link>
+                    <button
+                      className={styles.acceptBtn}
+                      onClick={() => {
+                        if (!isFriend) {
+                          handleSendFriendRequest(userResult.id);
+                        }
+                      }}
+                      disabled={isFriend || sentRequests.includes(userResult.id)}
+                    >
+                      {isFriend
+                        ? '✓ В друзьях'
+                        : sentRequests.includes(userResult.id)
+                          ? '✓ Заявка отправлена'
+                          : '+ Добавить'}
+                    </button>
                   </div>
+
                 </div>
               );
             })}

@@ -62,6 +62,51 @@ export default function PublicProfilePage({ params }: PageProps) {
     fetchPublicProfile();
   }, [supabase, targetUsername]);
 
+  useEffect(() => {
+    const checkFriendRequest = async () => {
+      if (!currentUser || !profile || currentUser.id === profile.id) {
+        setFriendRequestStatus('none');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id, status')
+        .or(
+          `and(sender_id.eq.${currentUser.id},receiver_id.eq.${profile.id}),and(sender_id.eq.${profile.id},receiver_id.eq.${currentUser.id})`
+        )
+        .maybeSingle();
+
+      if (error) {
+        console.error('Friend request check error:', error);
+        return;
+      }
+
+      if (!data) {
+        setFriendRequestStatus('none');
+        return;
+      }
+
+      if (data.status === 'accepted') {
+        setFriendRequestStatus('accepted');
+      } else if (
+        data.status === 'pending' &&
+        data.sender_id === currentUser.id
+      ) {
+        setFriendRequestStatus('pending_sent');
+      } else if (
+        data.status === 'pending' &&
+        data.receiver_id === currentUser.id
+      ) {
+        setFriendRequestStatus('pending_received');
+      } else {
+        setFriendRequestStatus('none');
+      }
+    };
+
+    checkFriendRequest();
+  }, [currentUser, profile, supabase]);
+
   if (loading) {
     return (
       <div className={styles.container}>

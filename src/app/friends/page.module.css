@@ -68,7 +68,9 @@
   outline: none;
 }
 
-.friendsList, .requestsList, .searchResultsList {
+.friendsList,
+.requestsList,
+.searchResultsList {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -165,7 +167,8 @@
   gap: 8px;
 }
 
-.listenTogetherBtn, .profileLinkBtn {
+.listenTogetherBtn,
+.profileLinkBtn {
   padding: 6px 14px;
   background-color: rgba(139, 92, 246, 0.15);
   border: 1px solid var(--border-accent);
@@ -180,7 +183,8 @@
   gap: 6px;
 }
 
-.listenTogetherBtn:hover, .profileLinkBtn:hover {
+.listenTogetherBtn:hover,
+.profileLinkBtn:hover {
   background-color: var(--accent-purple);
   color: #fff;
 }
@@ -194,6 +198,50 @@
   font-size: 14px;
   cursor: pointer;
 }
+
+.menuWrapper {
+  position: relative;
+}
+
+.dropdownMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background-color: #1a1a2e;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  min-width: 160px;
+  z-index: 50;
+  overflow: hidden;
+}
+
+.dropdownDanger {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f87171;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.dropdownDanger:hover {
+  background-color: rgba(248, 113, 113, 0.1);
+}
+
+@media (max-width: 600px) {
+  .dropdownMenu {
+    right: auto;
+    left: 0;
+  }
+}
+
+
 
 .requestCard {
   display: flex;
@@ -250,8 +298,59 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
   .actions {
     width: 100%;
     justify-content: flex-end;
+  }
+}
+
+/* Friend request card */
+.requestCard>.avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+@media (max-width: 600px) {
+  .requestCard {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .requestCard>.avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .reqInfo {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .reqInfo .name {
+    font-size: 13px;
+  }
+
+  .reqInfo .username {
+    font-size: 11px;
+  }
+
+  .reqBtns {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .acceptBtn,
+  .declineBtn {
+    padding: 6px 8px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 }
