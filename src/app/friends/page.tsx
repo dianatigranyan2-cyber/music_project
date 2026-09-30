@@ -1,18 +1,84 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import styles from './page.module.css';
-import { MOCK_FRIENDS } from '../../data/mockData';
+import { MOCK_FRIENDS, CURRENT_USER } from '../../data/mockData';
 import { usePlayer } from '../../context/PlayerContext';
-import { Friend } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { createClient } from '../../lib/supabase/client';
+
+interface UserSearchResult {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+}
 
 export default function FriendsPage() {
-  const { playTrack, searchQuery } = usePlayer();
+  const { playTrack, searchQuery: headerSearchQuery } = usePlayer();
+  const { user: currentUser } = useAuth();
+  const [supabase] = useState(() => createClient());
+
   const [activeTab, setActiveTab] = useState<'my' | 'requests' | 'search'>('my');
   const [requests, setRequests] = useState([
     { id: 'r1', name: 'Екатерина Романова', username: 'katya_music', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', mutual: 6 },
     { id: 'r2', name: 'Денис Мельников', username: 'denis_beats', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', mutual: 14 },
   ]);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Sync header search query with friends search
+  useEffect(() => {
+    if (headerSearchQuery.trim()) {
+      setSearchTerm(headerSearchQuery);
+      setActiveTab('search');
+    }
+  }, [headerSearchQuery]);
+
+  // Debounced search logic for querying public.profiles
+  useEffect(() => {
+    const cleanTerm = searchTerm.trim();
+    if (!cleanTerm) {
+      setSearchResults([]);
+      setIsSearching(false);
+      setHasSearched(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        let query = supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, bio')
+          .or(`username.ilike.%${cleanTerm}%,display_name.ilike.%${cleanTerm}%`);
+
+        if (currentUser?.id) {
+          query = query.neq('id', currentUser.id);
+        }
+
+        const { data, error } = await query.limit(20);
+
+        if (!error && data) {
+          setSearchResults(data as UserSearchResult[]);
+        } else {
+          setSearchResults([]);
+        }
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+        setHasSearched(true);
+      }
+    }, 300); // 300ms debounce delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, currentUser?.id, supabase]);
 
   const handleAcceptRequest = (id: string) => {
     setRequests(requests.filter((r) => r.id !== id));
@@ -24,8 +90,8 @@ export default function FriendsPage() {
 
   const filteredFriends = MOCK_FRIENDS.filter(
     (f) =>
-      f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.username.toLowerCase().includes(searchQuery.toLowerCase())
+      f.name.toLowerCase().includes(headerSearchQuery.toLowerCase()) ||
+      f.username.toLowerCase().includes(headerSearchQuery.toLowerCase())
   );
 
   return (
@@ -100,7 +166,7 @@ export default function FriendsPage() {
             ))
           ) : (
             <div className={styles.emptyState}>
-              <p>Друзья по запросу «{searchQuery}» не найдены.</p>
+              <p>Друзья по запросу «{headerSearchQuery}» не найдены.</p>
             </div>
           )}
         </div>
@@ -138,8 +204,75 @@ export default function FriendsPage() {
 
       {/* Tab: Search Users */}
       {activeTab === 'search' && (
-        <div className={styles.emptyState}>
-          <p>Вставьте никнейм или имя в верхнее поле поиска для нахождения новых пользователей.</p>
+        <div className={styles.searchResultsList}>
+          <div className={styles.searchBarRow}>
+            <span style={{ fontSize: '16px' }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Введите никнейм или имя для поиска..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+              autoFocus
+            />
+            {searchTerm && (
+              <button
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                onClick={() => setSearchTerm('')}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {isSearching && (
+            <div className={styles.emptyState}>
+              <p>🔍 Поиск пользователей в Melo...</p>
+            </div>
+          )}
+
+          {!isSearching && hasSearched && searchResults.length === 0 && (
+            <div className={styles.emptyState}>
+              <p>Пользователи по запросу «{searchTerm}» не найдены.</p>
+            </div>
+          )}
+
+          {!isSearching && !hasSearched && !searchTerm && (
+            <div className={styles.emptyState}>
+              <p>Введите никнейм или имя в поле поиска выше для нахождения аккаунтов Melo.</p>
+            </div>
+          )}
+
+          {!isSearching &&
+            searchResults.map((userResult) => {
+              const displayName = userResult.display_name || userResult.username;
+              const avatar = userResult.avatar_url || CURRENT_USER.avatarUrl;
+
+              return (
+                <div key={userResult.id} className={styles.friendRow}>
+                  <div className={styles.avatarWrapper}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={avatar} alt={displayName} className={styles.avatar} />
+                  </div>
+
+                  <div className={styles.friendInfo}>
+                    <div className={styles.nameLine}>
+                      <span className={styles.name}>{displayName}</span>
+                      <span className={styles.username}>@{userResult.username}</span>
+                    </div>
+                    <span className={styles.statusMsg}>
+                      {userResult.bio ? userResult.bio.slice(0, 70) + (userResult.bio.length > 70 ? '...' : '') : 'Пользователь Melo'}
+                    </span>
+                  </div>
+
+                  <div className={styles.actions}>
+                    <Link href={`/profile/${userResult.username}`} className={styles.profileLinkBtn}>
+                      👤 Профиль
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
         </div>
       )}
     </div>

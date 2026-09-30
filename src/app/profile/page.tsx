@@ -1,12 +1,20 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import styles from './page.module.css';
 import { CURRENT_USER, DEMO_TRACKS } from '../../data/mockData';
 import { usePlayer } from '../../context/PlayerContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProfilePage() {
   const { playTrack } = usePlayer();
+  const { user, profile } = useAuth();
+
+  const displayName = profile?.display_name || profile?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || CURRENT_USER.name;
+  const displayHandle = profile?.username ? `@${profile.username}` : user?.email ? user.email : CURRENT_USER.handle;
+  const avatarUrl = profile?.avatar_url || CURRENT_USER.avatarUrl;
+  const bioText = profile?.bio || 'Музыкальный энтузиаст, создатель ночных синтвейв-комнат. Делюсь атмосферными треками для концентрации.';
 
   const genres = ['Синтвейв 🌌', 'Киберпанк ⚡', 'Ретровейв 🌆', 'Инди-поп 🎸', 'Лоу-фай ☕'];
 
@@ -16,14 +24,21 @@ export default function ProfilePage() {
       <div className={styles.profileHero}>
         <div className={styles.avatarWrapper}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={CURRENT_USER.avatarUrl} alt={CURRENT_USER.name} className={styles.avatar} />
+          <img src={avatarUrl} alt={displayName} className={styles.avatar} />
         </div>
         <div className={styles.profileMeta}>
-          <h1 className={styles.name}>{CURRENT_USER.name}</h1>
-          <span className={styles.handle}>{CURRENT_USER.handle}</span>
-          <p className={styles.bio}>
-            Музыкальный энтузиаст, создатель ночных синтвейв-комнат. Делюсь атмосферными треками для концентрации.
-          </p>
+          <div className={styles.headerTop}>
+            <div>
+              <h1 className={styles.name}>{displayName}</h1>
+              <span className={styles.handle}>{displayHandle}</span>
+            </div>
+            {user && (
+              <Link href="/settings" className={styles.editBtn}>
+                ✏️ Редактировать профиль
+              </Link>
+            )}
+          </div>
+          <p className={styles.bio}>{bioText}</p>
           <div className={styles.statsRow}>
             <div className={styles.statItem}>
               <span className={styles.statVal}>42</span>

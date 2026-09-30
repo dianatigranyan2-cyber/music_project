@@ -154,6 +154,65 @@
   box-shadow: 0 0 6px #ec4899;
 }
 
+.authProfileWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoutBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logoutBtn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.authButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loginBtn {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+}
+
+.loginBtn:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-accent);
+}
+
+.registerBtn {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent-gradient);
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-purple);
+  transition: transform 0.2s ease;
+}
+
+.registerBtn:hover {
+  transform: translateY(-1px);
+}
+
 .profileCard {
   display: flex;
   align-items: center;

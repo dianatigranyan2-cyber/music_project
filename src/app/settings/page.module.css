@@ -32,6 +32,16 @@
   font-weight: 600;
 }
 
+.errorBanner {
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
 .form {
   display: flex;
   flex-direction: column;
@@ -68,7 +78,7 @@
   color: var(--text-muted);
 }
 
-.input, .select {
+.input, .textarea, .select {
   width: 100%;
   padding: 10px 14px;
   background-color: rgba(255, 255, 255, 0.05);
@@ -77,15 +87,84 @@
   color: var(--text-main);
   font-size: 13.5px;
   outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
-.input:focus, .select:focus {
+.textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.input:focus, .textarea:focus, .select:focus {
   border-color: var(--accent-purple);
 }
 
 .select option {
   background-color: var(--bg-dark);
   color: var(--text-main);
+}
+
+.avatarSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 0;
+}
+
+.avatarPreviewWrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  border: 3px solid var(--accent-purple);
+  flex-shrink: 0;
+  background-color: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarUploadControls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fileInputHidden {
+  display: none;
+}
+
+.fileSelectBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid var(--border-accent);
+  color: #d8b4fe;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.fileSelectBtn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.25);
+  color: #fff;
+}
+
+.fileSelectBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .toggleRow {
@@ -127,8 +206,20 @@
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-purple);
   transition: transform 0.2s ease;
+  cursor: pointer;
 }
 
-.saveBtn:hover {
+.saveBtn:hover:not(:disabled) {
   transform: translateY(-1px);
+}
+
+.saveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fieldNote {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-top: 2px;
 }

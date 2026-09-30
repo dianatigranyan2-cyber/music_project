@@ -6,6 +6,7 @@ import { Navigation } from '../Navigation/Navigation';
 import { Header } from '../Header/Header';
 import { Player } from '../Player/Player';
 import { PlayerProvider, usePlayer } from '../../context/PlayerContext';
+import { AuthProvider } from '../../context/AuthContext';
 import { CURRENT_USER } from '../../data/mockData';
 
 const InnerShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -19,7 +20,7 @@ const InnerShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Main Viewport */}
       <div className={styles.mainContent}>
         <Header
-          user={CURRENT_USER}
+          fallbackUser={CURRENT_USER}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         />
@@ -38,8 +39,10 @@ const InnerShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <PlayerProvider>
-      <InnerShell>{children}</InnerShell>
-    </PlayerProvider>
+    <AuthProvider>
+      <PlayerProvider>
+        <InnerShell>{children}</InnerShell>
+      </PlayerProvider>
+    </AuthProvider>
   );
 };

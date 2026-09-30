@@ -1,16 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import styles from './Header.module.css';
 import { UserProfile } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
-  user: UserProfile;
+  fallbackUser: UserProfile;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, searchQuery, setSearchQuery }) => {
+export const Header: React.FC<HeaderProps> = ({ fallbackUser, searchQuery, setSearchQuery }) => {
+  const { user, profile, signOut, loading } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
@@ -25,6 +28,10 @@ export const Header: React.FC<HeaderProps> = ({ user, searchQuery, setSearchQuer
     }
   };
 
+  const displayName = profile?.display_name || profile?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || fallbackUser.name;
+  const displayHandle = profile?.username ? `@${profile.username}` : user?.email ? user.email : fallbackUser.handle;
+  const avatarUrl = profile?.avatar_url || fallbackUser.avatarUrl;
+
   return (
     <header className={styles.header}>
       {/* Main Header Row */}
@@ -35,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ user, searchQuery, setSearchQuer
           <span className={styles.mobileLogoText}>Melo</span>
         </div>
 
-        {/* Desktop Search Bar (Always visible on desktop) */}
+        {/* Desktop Search Bar */}
         <div className={styles.desktopSearchRow}>
           <div className={styles.searchWrapper}>
             <span className={styles.searchIcon}>🔍</span>
@@ -75,15 +82,31 @@ export const Header: React.FC<HeaderProps> = ({ user, searchQuery, setSearchQuer
             <span className={styles.unreadDot} />
           </button>
 
-          {/* User Profile */}
-          <div className={styles.profileCard}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={user.avatarUrl} alt={user.name} className={styles.avatar} />
-            <div className={styles.userInfo}>
-              <span className={styles.userName}>{user.name}</span>
-              <span className={styles.userHandle}>{user.handle}</span>
+          {/* User Auth Section */}
+          {!loading && user ? (
+            <div className={styles.authProfileWrapper}>
+              <Link href="/profile" className={styles.profileCard}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={avatarUrl} alt={displayName} className={styles.avatar} />
+                <div className={styles.userInfo}>
+                  <span className={styles.userName}>{displayName}</span>
+                  <span className={styles.userHandle}>{displayHandle}</span>
+                </div>
+              </Link>
+              <button className={styles.logoutBtn} onClick={() => signOut()} title="Выйти из аккаунта">
+                Выйти
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className={styles.authButtons}>
+              <Link href="/login" className={styles.loginBtn}>
+                Войти
+              </Link>
+              <Link href="/register" className={styles.registerBtn}>
+                Регистрация
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
