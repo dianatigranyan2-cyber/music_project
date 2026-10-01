@@ -1,12 +1,15 @@
 /* ─── Shared Container ─── */
 .container {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: 0;
-  height: calc(100vh - 140px);
-  min-height: 480px;
+  height: calc(100vh - 120px);
+  min-height: 520px;
   overflow: hidden;
   background-color: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
 
 /* ─── List Panel ─── */
@@ -16,6 +19,7 @@
   background-color: var(--bg-card);
   border-right: 1px solid var(--border-color);
   overflow-y: auto;
+  min-width: 0;
 }
 
 .listHeader {
@@ -23,7 +27,7 @@
   border-bottom: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   position: sticky;
   top: 0;
   background-color: var(--bg-card);
@@ -34,6 +38,7 @@
   font-size: 20px;
   font-weight: 700;
   color: var(--text-main);
+  letter-spacing: -0.3px;
 }
 
 .searchWrapper {
@@ -44,7 +49,7 @@
 
 .searchIcon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   font-size: 13px;
   color: var(--text-dim);
   pointer-events: none;
@@ -52,43 +57,51 @@
 
 .searchInput {
   width: 100%;
-  padding: 8px 12px 8px 36px;
+  padding: 9px 14px 9px 38px;
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
   color: var(--text-main);
   font-size: 13px;
   outline: none;
+  transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
 .searchInput:focus {
   border-color: var(--accent-purple);
+  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
 }
 
 .chatsList {
   display: flex;
   flex-direction: column;
   padding: 8px;
-  gap: 2px;
+  gap: 4px;
 }
 
 .chatItem {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   padding: 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
 .chatItem:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+.chatItem:active {
+  transform: scale(0.99);
+}
+
 .activeChatItem {
-  background-color: rgba(139, 92, 246, 0.15) !important;
+  background-color: rgba(139, 92, 246, 0.18) !important;
+  border: 1px solid var(--border-accent);
 }
 
 .avatarWrapper {
@@ -109,14 +122,19 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: var(--radius-full);
   border: 2px solid var(--bg-card);
 }
 
-.online { background-color: #22c55e; }
-.offline { background-color: #64748b; }
+.online {
+  background-color: #22c55e;
+}
+
+.offline {
+  background-color: #64748b;
+}
 
 .chatMeta {
   flex: 1;
@@ -143,7 +161,7 @@
 }
 
 .msgTime {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text-dim);
   flex-shrink: 0;
   margin-left: 6px;
@@ -156,12 +174,12 @@
 }
 
 .handle {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-muted);
 }
 
 .lastMsgText {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -170,10 +188,52 @@
 }
 
 .emptyState {
-  padding: 30px;
+  padding: 40px 20px;
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+/* ─── Unread Messages ─── */
+
+.chatRightInfo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.unreadBadge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--accent-gradient);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
+}
+
+.unreadFriendName {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.unreadLastMessage {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.unreadTime {
+  color: var(--accent-purple-light);
+  font-weight: 600;
 }
 
 /* ─── Chat Panel ─── */
@@ -182,42 +242,52 @@
   flex-direction: column;
   background-color: var(--bg-dark);
   overflow: hidden;
+  height: 100%;
 }
 
 .chatHeader {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 14px 20px;
   background-color: rgba(11, 15, 25, 0.95);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
 .backBtn {
-  display: none; /* desktop: hidden */
+  display: none;
+  /* desktop: hidden */
   align-items: center;
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
   color: var(--accent-purple-light);
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  background-color: rgba(139, 92, 246, 0.1);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background-color: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.25);
   white-space: nowrap;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backBtn:hover {
+  background-color: rgba(139, 92, 246, 0.25);
 }
 
 .headerUserInfo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex: 1;
 }
 
 .headerAvatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-full);
   object-fit: cover;
 }
@@ -228,34 +298,35 @@
 }
 
 .headerName {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
 }
 
 .headerStatus {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-muted);
 }
 
 .messagesContainer {
   flex: 1;
-  padding: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .messageBubble {
-  max-width: 72%;
+  max-width: 70%;
   padding: 10px 14px;
   border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   gap: 4px;
   word-break: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .myBubble {
@@ -267,20 +338,62 @@
 
 .theirBubble {
   align-self: flex-start;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-color);
   color: var(--text-main);
   border-bottom-left-radius: 2px;
 }
 
 .messageText {
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.45;
 }
 
 .timeLabel {
   font-size: 10px;
-  opacity: 0.65;
+  opacity: 0.7;
   align-self: flex-end;
+}
+
+.messageInfo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  align-self: flex-end;
+}
+
+.readStatus {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.65;
+  letter-spacing: -3px;
+  padding-right: 3px;
+}
+
+.messageRead {
+  opacity: 1;
+  color: #c4b5fd;
+}
+
+.dateDivider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 14px 0 6px 0;
+  width: 100%;
+}
+
+.dateDivider span {
+  background-color: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .emptyChat {
@@ -289,68 +402,102 @@
   justify-content: center;
   height: 100%;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 13.5px;
 }
 
 .sendForm {
   display: flex;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 12px 16px;
   border-top: 1px solid var(--border-color);
-  background-color: rgba(11, 15, 25, 0.95);
+  background-color: rgba(11, 15, 25, 0.96);
+  backdrop-filter: blur(12px);
   flex-shrink: 0;
-  /* Stay above mobile keyboard */
-  position: sticky;
-  bottom: 0;
 }
 
 .messageInput {
   flex: 1;
-  padding: 10px 14px;
+  padding: 11px 16px;
   background-color: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
   color: var(--text-main);
-  font-size: 13px;
+  font-size: 13.5px;
   outline: none;
   min-width: 0;
+  transition: all 0.2s ease;
 }
 
 .messageInput:focus {
   border-color: var(--accent-purple);
+  background-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
 }
 
 .sendBtn {
-  padding: 10px 16px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-full);
-  background: var(--accent-purple);
+  background: var(--accent-gradient);
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: none;
+  box-shadow: var(--shadow-purple);
+}
+
+.sendBtn:hover {
+  transform: scale(1.05);
+}
+
+.sendBtn:active {
+  transform: scale(0.96);
 }
 
 .selectPrompt {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
   color: var(--text-muted);
   font-size: 14px;
+  gap: 8px;
+  text-align: center;
+  padding: 20px;
 }
 
-/* ─── MOBILE (≤ 768px): fullscreen panel switching ─── */
+/* ─── TABLET (769px - 1024px) ─── */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .container {
+    grid-template-columns: 280px 1fr;
+    height: calc(100vh - 140px);
+  }
+}
+
+/* ─── MOBILE (≤ 768px): Fullscreen screen switching ─── */
 @media (max-width: 768px) {
   .container {
-    display: block; /* no grid: panels stack via absolute */
+    display: block;
     position: relative;
-    height: calc(100dvh - 56px); /* full height minus top header only */
-    max-height: calc(100dvh - 56px);
-    overflow: hidden;
+    height: calc(100dvh - 70px);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
   }
 
-  /* When chat is open, hide bottom nav and player via CSS class on parent */
-  .chatOpen ~ * {
-    display: none;
+  .container.chatOpen {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    height: 100dvh;
+    background-color: var(--bg-dark);
   }
 
   /* List Panel: full page width */
@@ -365,19 +512,19 @@
   }
 
   .listPanelHidden {
-    transform: translateX(-110%);
+    transform: translateX(-100%);
     pointer-events: none;
   }
 
-  /* Chat Panel: full page width, slides from right */
+  /* Chat Panel: fullscreen, slides from right */
   .chatPanel {
     position: absolute;
     inset: 0;
     display: flex;
     flex-direction: column;
     transition: transform 0.25s ease;
-    transform: translateX(110%);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateX(100%);
+    background-color: var(--bg-dark);
   }
 
   .chatPanel:not(.chatPanelHidden) {
@@ -385,7 +532,7 @@
   }
 
   .chatPanelHidden {
-    transform: translateX(110%);
+    transform: translateX(100%);
     pointer-events: none;
   }
 
@@ -395,20 +542,19 @@
   }
 
   .messagesContainer {
-    padding: 12px;
-    /* Leave room above keyboard by using flex: 1 */
+    padding: 14px 12px;
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
   .sendForm {
-    padding: 8px 10px;
-    padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
   }
 
   .messageBubble {
-    max-width: 85%;
+    max-width: 82%;
   }
 
   .selectPrompt {

@@ -11,6 +11,9 @@ interface PlayerContextType {
   setSearchQuery: (query: string) => void;
   handleNextTrack: () => void;
   handlePrevTrack: () => void;
+  /** True when a full-screen mobile chat is open — hides player + bottom nav */
+  mobileChatOpen: boolean;
+  setMobileChatOpen: (open: boolean) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -18,6 +21,7 @@ const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentTrack, setCurrentTrack] = useState<Track>(INITIAL_TRACK);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   const playTrack = (track: Track) => {
     setCurrentTrack(track);
@@ -44,6 +48,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setSearchQuery,
         handleNextTrack,
         handlePrevTrack,
+        mobileChatOpen,
+        setMobileChatOpen,
       }}
     >
       {children}

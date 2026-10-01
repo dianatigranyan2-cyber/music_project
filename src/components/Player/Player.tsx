@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Player.module.css';
 import { Track } from '../../types';
+import { usePlayer } from '../../context/PlayerContext';
 
 interface PlayerProps {
   currentTrack: Track;
@@ -11,6 +12,7 @@ interface PlayerProps {
 }
 
 export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPrevTrack }) => {
+  const { mobileChatOpen } = usePlayer();
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(45);
   const [volume, setVolume] = useState(80);
@@ -150,7 +152,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
       )}
 
       {/* Persistent Compact Bar */}
-      <div className={styles.playerContainer}>
+      <div className={`${styles.playerContainer} ${mobileChatOpen ? styles.hideOnMobileChat : ''}`}>
         {/* Left: Track Info */}
         <div className={styles.trackInfo} onClick={() => setIsExpandedMobile(true)}>
           <div className={styles.coverWrapper}>

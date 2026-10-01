@@ -176,4 +176,8 @@
   .mobileIcon {
     font-size: 18px;
   }
+
+  .mobileNavHidden {
+    display: none !important;
+  }
 }

@@ -418,4 +418,8 @@
     color: var(--text-muted);
     padding: 6px;
   }
+
+  .hideOnMobileChat {
+    display: none !important;
+  }
 }

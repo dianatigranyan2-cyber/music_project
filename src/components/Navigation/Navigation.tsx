@@ -4,9 +4,11 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './Navigation.module.css';
+import { usePlayer } from '../../context/PlayerContext';
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
+  const { mobileChatOpen } = usePlayer();
 
   const navItems = [
     { id: 'home', href: '/', label: 'Главная', icon: '🏠' },
@@ -57,7 +59,7 @@ export const Navigation: React.FC = () => {
       </aside>
 
       {/* Mobile Bottom Navigation */}
-      <nav className={styles.mobileNav}>
+      <nav className={`${styles.mobileNav} ${mobileChatOpen ? styles.mobileNavHidden : ''}`}>
         {navItems.slice(0, 5).map((item) => {
           const isActive = pathname === item.href;
           return (
