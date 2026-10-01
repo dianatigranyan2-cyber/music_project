@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 import { CURRENT_USER } from '../../data/mockData';
@@ -49,6 +49,8 @@ export default function FriendsPage() {
   const [friendsLoading, setFriendsLoading] = useState(true);
 
   const [sentRequests, setSentRequests] = useState<string[]>([]);
+  const [receivedRequests, setReceivedRequests] = useState<Record<string, string>>({});
+
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -179,7 +181,17 @@ export default function FriendsPage() {
         console.error('Error loading friend requests:', error);
         setRequests([]);
       } else {
-        setRequests((data || []) as unknown as FriendRequest[]);
+        const incomingRequests = (data || []) as unknown as FriendRequest[];
+
+        setRequests(incomingRequests);
+
+        const receivedMap: Record<string, string> = {};
+
+        incomingRequests.forEach((request) => {
+          receivedMap[request.sender_id] = request.id;
+        });
+
+        setReceivedRequests(receivedMap);
       }
 
       setRequestsLoading(false);
@@ -188,64 +200,62 @@ export default function FriendsPage() {
     loadFriendRequests();
   }, [currentUser?.id, supabase]);
 
+  const loadFriends = useCallback(async () => {
+    if (!currentUser?.id) {
+      setFriends([]);
+      setFriendsLoading(false);
+      return;
+    }
+
+    setFriendsLoading(true);
+
+    // Получаем все принятые заявки, где участвует текущий пользователь
+    const { data: friendships, error: friendshipsError } = await supabase
+      .from('friend_requests')
+      .select('sender_id, receiver_id')
+      .eq('status', 'accepted')
+      .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+
+    if (friendshipsError) {
+      console.error('Error loading friends:', friendshipsError);
+      setFriends([]);
+      setFriendsLoading(false);
+      return;
+    }
+
+    // Получаем ID второго пользователя в каждой дружбе
+    const friendIds = (friendships || []).map((friendship) =>
+      friendship.sender_id === currentUser.id
+        ? friendship.receiver_id
+        : friendship.sender_id
+    );
+
+    if (friendIds.length === 0) {
+      setFriends([]);
+      setFriendsLoading(false);
+      return;
+    }
+
+    // Загружаем профили друзей
+    const { data: friendProfiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url, bio')
+      .in('id', friendIds);
+
+    if (profilesError) {
+      console.error('Error loading friend profiles:', profilesError);
+      setFriends([]);
+    } else {
+      setFriends((friendProfiles || []) as Friend[]);
+    }
+
+    setFriendsLoading(false);
+  }, [currentUser?.id, supabase]);
+
   // Load real friends
   useEffect(() => {
-    const loadFriends = async () => {
-      if (!currentUser?.id) {
-        setFriends([]);
-        setFriendsLoading(false);
-        return;
-      }
-
-      setFriendsLoading(true);
-
-      // Получаем все принятые заявки, где участвует текущий пользователь
-      const { data: friendships, error: friendshipsError } = await supabase
-        .from('friend_requests')
-        .select('sender_id, receiver_id')
-        .eq('status', 'accepted')
-        .or(
-          `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`
-        );
-
-      if (friendshipsError) {
-        console.error('Error loading friends:', friendshipsError);
-        setFriends([]);
-        setFriendsLoading(false);
-        return;
-      }
-
-      // Получаем ID второго пользователя в каждой дружбе
-      const friendIds = (friendships || []).map((friendship) =>
-        friendship.sender_id === currentUser.id
-          ? friendship.receiver_id
-          : friendship.sender_id
-      );
-
-      if (friendIds.length === 0) {
-        setFriends([]);
-        setFriendsLoading(false);
-        return;
-      }
-
-      // Загружаем профили друзей
-      const { data: friendProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url, bio')
-        .in('id', friendIds);
-
-      if (profilesError) {
-        console.error('Error loading friend profiles:', profilesError);
-        setFriends([]);
-      } else {
-        setFriends((friendProfiles || []) as Friend[]);
-      }
-
-      setFriendsLoading(false);
-    };
-
     loadFriends();
-  }, [currentUser?.id, supabase]);
+  }, [loadFriends]);
 
   const handleRemoveFriend = async (friendId: string) => {
     if (!currentUser?.id) {
@@ -307,7 +317,23 @@ export default function FriendsPage() {
       return;
     }
 
-    setRequests((prev) => prev.filter((request) => request.id !== id));
+    setRequests((prev) =>
+      prev.filter((request) => request.id !== id)
+    );
+
+    setReceivedRequests((prev) => {
+      const updated = { ...prev };
+
+      for (const userId in updated) {
+        if (updated[userId] === id) {
+          delete updated[userId];
+        }
+      }
+
+      return updated;
+    });
+
+    await loadFriends();
   };
 
   const handleDeclineRequest = async (id: string) => {
@@ -325,6 +351,18 @@ export default function FriendsPage() {
     setRequests((prev) =>
       prev.filter((request) => request.id !== id)
     );
+
+    setReceivedRequests((prev) => {
+      const updated = { ...prev };
+
+      for (const userId in updated) {
+        if (updated[userId] === id) {
+          delete updated[userId];
+        }
+      }
+
+      return updated;
+    });
   };
   const filteredFriends = friends.filter((friend) => {
     const name = friend.display_name || friend.username;
@@ -401,9 +439,9 @@ export default function FriendsPage() {
                       </span>
                     </div>
 
-                    <span className={styles.statusMsg}>
-                      {friend.bio || 'Пользователь Melo'}
-                    </span>
+                    {/* <span className={styles.statusMsg}>
+                      {friend.bio || 'x'}
+                    </span> */}
                   </div>
 
                   <div className={styles.actions}>
@@ -589,17 +627,26 @@ export default function FriendsPage() {
                     <button
                       className={styles.acceptBtn}
                       onClick={() => {
-                        if (!isFriend) {
+                        const incomingRequestId = receivedRequests[userResult.id];
+
+                        if (incomingRequestId) {
+                          handleAcceptRequest(incomingRequestId);
+                        } else if (!isFriend) {
                           handleSendFriendRequest(userResult.id);
                         }
                       }}
-                      disabled={isFriend || sentRequests.includes(userResult.id)}
+                      disabled={
+                        isFriend ||
+                        sentRequests.includes(userResult.id)
+                      }
                     >
                       {isFriend
                         ? '✓ В друзьях'
-                        : sentRequests.includes(userResult.id)
-                          ? '✓ Заявка отправлена'
-                          : '+ Добавить'}
+                        : receivedRequests[userResult.id]
+                          ? 'Принять заявку'
+                          : sentRequests.includes(userResult.id)
+                            ? '✓ Заявка отправлена'
+                            : '+ Добавить'}
                     </button>
                   </div>
 
