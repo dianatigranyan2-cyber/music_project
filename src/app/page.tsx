@@ -38,7 +38,7 @@ export default function Home() {
   };
 
   return (
-    <>
+    <div>
       {/* Friends Stories */}
       <StoriesBar stories={MOCK_STORIES} />
 
@@ -108,9 +108,8 @@ export default function Home() {
           {DEMO_TRACKS.map((track, idx) => (
             <div
               key={track.id}
-              className={`${styles.trackRow} ${
-                track.id === currentTrack.id ? styles.trackRowActive : ''
-              }`}
+              className={`${styles.trackRow} ${track.id === currentTrack.id ? styles.trackRowActive : ''
+                }`}
               onClick={() => playTrack(track)}
             >
               <div className={styles.trackRowLeft}>
@@ -139,6 +138,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-    </>
+    </div>
   );
 }
