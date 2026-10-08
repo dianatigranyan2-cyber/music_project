@@ -375,7 +375,7 @@ export default function StoryViewerPage({ params }: PageProps) {
       setProgress((prev) => {
         if (prev + increment >= 100) {
           clearInterval(timer);
-          goToNextStory();
+          setTimeout(() => goToNextStory(), 0);
           return 100;
         }
         return prev + increment;
@@ -491,6 +491,7 @@ export default function StoryViewerPage({ params }: PageProps) {
         receiver_id: story.user_id,
         content: replyText.trim(),
         story_id: story.id,
+        is_story_reply: true,
       });
 
     if (error) {

@@ -213,50 +213,48 @@ export default function MessagesPage() {
       console.error('Error loading story previews:', error);
     }
 
-    const found = new Map<string, StorySnippet>();
-    if (!error) {
-      for (const story of data ?? []) {
-        found.set(story.id, {
+    const updates: Record<string, StorySnippet | null> = {};
+    const foundIds = new Set<string>();
+
+    if (!error && data) {
+      for (const story of data) {
+        foundIds.add(story.id);
+        updates[story.id] = {
           id: story.id,
           media_url: story.media_url,
           media_type: story.media_type === 'video' ? 'video' : 'image',
+        };
+      }
+    }
+
+    const missing = ids.filter((id) => !foundIds.has(id));
+
+    if (missing.length > 0) {
+      const delays = [2000, 5000];
+      if (attempt < delays.length) {
+        const timer = setTimeout(() => {
+          storyRetryTimersRef.current.delete(timer);
+          const stillMissing = missing.filter((id) => pendingStoryIdsRef.current.has(id));
+          if (stillMissing.length) void fetchStorySnippets(stillMissing, attempt + 1);
+        }, delays[attempt]);
+        storyRetryTimersRef.current.add(timer);
+      } else {
+        missing.forEach((id) => {
+          updates[id] = null;
         });
       }
     }
 
-    if (found.size) {
-      setStoriesMap(prev => {
-        const next = { ...prev };
-        found.forEach((story, id) => { next[id] = story; });
-        return next;
-      });
-    }
+    setStoriesMap((prev) => ({
+      ...prev,
+      ...updates,
+    }));
 
-    const missing = ids.filter(id => !found.has(id));
-    found.forEach((_story, id) => pendingStoryIdsRef.current.delete(id));
-
-    if (!missing.length) return;
-
-    // Initial request + three retries (2s, 5s, 12s).
-    const delays = [2000, 5000, 12000];
-    if (attempt < delays.length) {
-      const timer = setTimeout(() => {
-        storyRetryTimersRef.current.delete(timer);
-        const stillMissing = missing.filter(id => pendingStoryIdsRef.current.has(id));
-        if (stillMissing.length) void fetchStorySnippets(stillMissing, attempt + 1);
-      }, delays[attempt]);
-      storyRetryTimersRef.current.add(timer);
-    } else {
-      // Do not call a missing row "deleted": RLS can also hide it.
-      setStoriesMap(prev => {
-        const next = { ...prev };
-        for (const id of missing) {
-          if (!(id in next)) next[id] = null;
-        }
-        return next;
-      });
-      missing.forEach(id => pendingStoryIdsRef.current.delete(id));
-    }
+    ids.forEach((id) => {
+      if (foundIds.has(id) || attempt >= 2) {
+        pendingStoryIdsRef.current.delete(id);
+      }
+    });
   }, [supabase]);
 
   // Load previews whenever messages introduce new story IDs.
@@ -266,9 +264,13 @@ export default function MessagesPage() {
     const newIds = new Set<string>();
     for (const messages of Object.values(chatHistories)) {
       for (const message of messages) {
-        if (message.is_story_reply && message.story_id &&
+        const isStoryReply = message.is_story_reply || Boolean(message.story_id);
+        if (
+          isStoryReply &&
+          message.story_id &&
           !(message.story_id in storiesMapRef.current) &&
-          !pendingStoryIdsRef.current.has(message.story_id)) {
+          !pendingStoryIdsRef.current.has(message.story_id)
+        ) {
           newIds.add(message.story_id);
         }
       }
@@ -276,7 +278,7 @@ export default function MessagesPage() {
 
     if (newIds.size) {
       const ids = [...newIds];
-      ids.forEach(id => pendingStoryIdsRef.current.add(id));
+      ids.forEach((id) => pendingStoryIdsRef.current.add(id));
       void fetchStorySnippets(ids);
     }
   }, [currentUser, chatHistories, fetchStorySnippets]);
@@ -2361,7 +2363,7 @@ export default function MessagesPage() {
 
                             <>
 
-                              {msg.is_story_reply && (
+                              {(msg.is_story_reply || Boolean(msg.story_id)) && (
 
                                 !msg.story_id ? (
 
@@ -2377,7 +2379,15 @@ export default function MessagesPage() {
 
                                   if (storySnippet === undefined) {
 
-                                    return null;
+                                    return (
+
+                                      <div className={styles.storyPreviewLoading}>
+
+                                        <span>📷</span> Загрузка истории...
+
+                                      </div>
+
+                                    );
 
                                   }
 

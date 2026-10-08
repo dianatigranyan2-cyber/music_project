@@ -472,6 +472,26 @@
   user-select: none;
 }
 
+.storyPreviewLoading {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  user-select: none;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
 .editedLabel {
   font-size: 10px;
   opacity: 0.65;
