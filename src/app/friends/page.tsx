@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, useCallback, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
 import { CURRENT_USER } from '../../data/mockData';
 import { usePlayer } from '../../context/PlayerContext';
@@ -53,7 +54,9 @@ interface Friend {
   bio: string | null;
 }
 
-export default function FriendsPage() {
+function FriendsPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { searchQuery: headerSearchQuery } = usePlayer();
   const { user: currentUser } = useAuth();
   const [supabase] = useState(() => createClient());
@@ -70,7 +73,11 @@ export default function FriendsPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const [activeTab, setActiveTab] = useState<'my' | 'requests' | 'search'>('my');
+  const requestedTab = searchParams.get('tab');
+  const activeTab = requestedTab === 'requests' || requestedTab === 'search' ? requestedTab : 'my';
+  const setActiveTab = useCallback((tab: 'my' | 'requests' | 'search') => {
+    router.replace(`/friends?tab=${tab}`, { scroll: false });
+  }, [router]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
@@ -240,7 +247,7 @@ export default function FriendsPage() {
       setActiveTab('search');
     });
     return () => cancelAnimationFrame(raf);
-  }, [headerSearchQuery]);
+  }, [headerSearchQuery, setActiveTab]);
 
   // Debounced search logic for querying public.profiles
   useEffect(() => {
@@ -900,5 +907,13 @@ export default function FriendsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FriendsPage() {
+  return (
+    <Suspense fallback={<div className={styles.emptyState}>Загрузка друзей…</div>}>
+      <FriendsPageContent />
+    </Suspense>
   );
 }

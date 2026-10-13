@@ -143,17 +143,6 @@
   display: none;
 }
 
-.unreadDot {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 7px;
-  height: 7px;
-  background-color: #ec4899;
-  border-radius: var(--radius-full);
-  box-shadow: 0 0 6px #ec4899;
-}
-
 .authProfileWrapper {
   display: flex;
   align-items: center;

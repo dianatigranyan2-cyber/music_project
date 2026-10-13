@@ -5,6 +5,7 @@ import Link from 'next/link';
 import styles from './Header.module.css';
 import { UserProfile } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { NotificationsBell } from '../Notifications/NotificationsBell';
 
 interface HeaderProps {
   fallbackUser: UserProfile;
@@ -14,7 +15,6 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ fallbackUser, searchQuery, setSearchQuery }) => {
   const { user, profile, signOut, loading } = useAuth();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   const toggleMobileSearch = () => {
@@ -72,15 +72,7 @@ export const Header: React.FC<HeaderProps> = ({ fallbackUser, searchQuery, setSe
             <span>{isMobileSearchOpen ? '✕' : '🔍'}</span>
           </button>
 
-          {/* Notifications Button */}
-          <button 
-            className={styles.iconBtn}
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
-            title="Уведомления"
-          >
-            <span>🔔</span>
-            <span className={styles.unreadDot} />
-          </button>
+          <NotificationsBell />
 
           {/* User Auth Section */}
           {!loading && user ? (
