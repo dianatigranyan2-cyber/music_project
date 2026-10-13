@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 import { CURRENT_USER } from '../../data/mockData';
@@ -30,6 +30,21 @@ interface FriendRequest {
   };
 }
 
+interface OutboundPendingRequest {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  receiver: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    bio: string | null;
+  };
+}
+
 interface Friend {
   id: string;
   username: string;
@@ -49,6 +64,7 @@ export default function FriendsPage() {
   const [friendsLoading, setFriendsLoading] = useState(true);
 
   const [sentRequests, setSentRequests] = useState<string[]>([]);
+  const [outboundRequests, setOutboundRequests] = useState<OutboundPendingRequest[]>([]);
   const [receivedRequests, setReceivedRequests] = useState<Record<string, string>>({});
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -72,135 +88,46 @@ export default function FriendsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Load already sent friend requests
-  useEffect(() => {
-    const loadSentRequests = async () => {
-      if (!currentUser?.id) {
-        setSentRequests([]);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('friend_requests')
-        .select('receiver_id')
-        .eq('sender_id', currentUser.id)
-        .eq('status', 'pending');
-
-      if (error) {
-        console.error('Error loading sent friend requests:', error);
-        return;
-      }
-
-      setSentRequests(
-        (data || []).map((request) => request.receiver_id)
-      );
-    };
-
-    loadSentRequests();
-  }, [currentUser?.id, supabase]);
-
-  // Sync header search query with friends search
-  useEffect(() => {
-    if (headerSearchQuery.trim()) {
-      setSearchTerm(headerSearchQuery);
-      setActiveTab('search');
-    }
-  }, [headerSearchQuery]);
-
-  // Debounced search logic for querying public.profiles
-  useEffect(() => {
-    const cleanTerm = searchTerm.trim();
-    if (!cleanTerm) {
-      setSearchResults([]);
-      setIsSearching(false);
-      setHasSearched(false);
+  const fetchSentRequests = async () => {
+    if (!currentUser?.id) {
+      setSentRequests([]);
+      setOutboundRequests([]);
       return;
     }
 
-    setIsSearching(true);
-    const timer = setTimeout(async () => {
-      try {
-        let query = supabase
-          .from('profiles')
-          .select('id, username, display_name, avatar_url, bio')
-          .or(`username.ilike.%${cleanTerm}%,display_name.ilike.%${cleanTerm}%`);
-
-        if (currentUser?.id) {
-          query = query.neq('id', currentUser.id);
-        }
-
-        const { data, error } = await query.limit(20);
-
-        if (!error && data) {
-          setSearchResults(data as UserSearchResult[]);
-        } else {
-          setSearchResults([]);
-        }
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-        setHasSearched(true);
-      }
-    }, 300); // 300ms debounce delay
-
-    return () => clearTimeout(timer);
-  }, [searchTerm, currentUser?.id, supabase]);
-
-  // Load real incoming friend requests
-  useEffect(() => {
-    const loadFriendRequests = async () => {
-      if (!currentUser?.id) {
-        setRequests([]);
-        setRequestsLoading(false);
-        return;
-      }
-
-      setRequestsLoading(true);
-
-      const { data, error } = await supabase
-        .from('friend_requests')
-        .select(`
+    const { data, error } = await supabase
+      .from('friend_requests')
+      .select(`
         id,
         sender_id,
         receiver_id,
         status,
         created_at,
-        sender:profiles!friend_requests_sender_id_fkey (
+        receiver:profiles!friend_requests_receiver_id_fkey (
           id,
           username,
           display_name,
-          avatar_url
+          avatar_url,
+          bio
         )
       `)
-        .eq('receiver_id', currentUser.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+      .eq('sender_id', currentUser.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error loading friend requests:', error);
-        setRequests([]);
-      } else {
-        const incomingRequests = (data || []) as unknown as FriendRequest[];
+    if (error) {
+      console.error('Error loading sent friend requests:', error);
+      setSentRequests([]);
+      setOutboundRequests([]);
+      return;
+    }
 
-        setRequests(incomingRequests);
+    const items = (data || []) as unknown as OutboundPendingRequest[];
+    setOutboundRequests(items);
+    setSentRequests(items.map((request) => request.receiver_id));
+  };
 
-        const receivedMap: Record<string, string> = {};
-
-        incomingRequests.forEach((request) => {
-          receivedMap[request.sender_id] = request.id;
-        });
-
-        setReceivedRequests(receivedMap);
-      }
-
-      setRequestsLoading(false);
-    };
-
-    loadFriendRequests();
-  }, [currentUser?.id, supabase]);
-
-  const loadFriends = useCallback(async () => {
+  const fetchFriends = async () => {
     if (!currentUser?.id) {
       setFriends([]);
       setFriendsLoading(false);
@@ -250,12 +177,240 @@ export default function FriendsPage() {
     }
 
     setFriendsLoading(false);
+  };
+
+  // Load already sent friend requests with full receiver profile data
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      if (!currentUser?.id) {
+        if (isMounted) {
+          setSentRequests([]);
+          setOutboundRequests([]);
+        }
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('friend_requests')
+        .select(`
+          id,
+          sender_id,
+          receiver_id,
+          status,
+          created_at,
+          receiver:profiles!friend_requests_receiver_id_fkey (
+            id,
+            username,
+            display_name,
+            avatar_url,
+            bio
+          )
+        `)
+        .eq('sender_id', currentUser.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.error('Error loading sent friend requests:', error);
+        setSentRequests([]);
+        setOutboundRequests([]);
+        return;
+      }
+
+      const items = (data || []) as unknown as OutboundPendingRequest[];
+      setOutboundRequests(items);
+      setSentRequests(items.map((request) => request.receiver_id));
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id, supabase]);
+
+  // Sync header search query with friends search
+  useEffect(() => {
+    const trimmed = headerSearchQuery.trim();
+    if (!trimmed) return;
+    const raf = requestAnimationFrame(() => {
+      setSearchTerm(trimmed);
+      setActiveTab('search');
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [headerSearchQuery]);
+
+  // Debounced search logic for querying public.profiles
+  useEffect(() => {
+    const cleanTerm = searchTerm.trim();
+    if (!cleanTerm) {
+      return;
+    }
+
+    let isMounted = true;
+    const timer = setTimeout(async () => {
+      if (isMounted) setIsSearching(true);
+      try {
+        let query = supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, bio')
+          .or(`username.ilike.%${cleanTerm}%,display_name.ilike.%${cleanTerm}%`);
+
+        if (currentUser?.id) {
+          query = query.neq('id', currentUser.id);
+        }
+
+        const { data, error } = await query.limit(20);
+
+        if (!isMounted) return;
+
+        if (!error && data) {
+          setSearchResults(data as UserSearchResult[]);
+        } else {
+          setSearchResults([]);
+        }
+      } catch {
+        if (isMounted) setSearchResults([]);
+      } finally {
+        if (isMounted) {
+          setIsSearching(false);
+          setHasSearched(true);
+        }
+      }
+    }, 300); // 300ms debounce delay
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [searchTerm, currentUser?.id, supabase]);
+
+  // Load real incoming friend requests
+  useEffect(() => {
+    let isMounted = true;
+    const loadFriendRequests = async () => {
+      if (!currentUser?.id) {
+        if (isMounted) {
+          setRequests([]);
+          setRequestsLoading(false);
+        }
+        return;
+      }
+
+      if (isMounted) setRequestsLoading(true);
+
+      const { data, error } = await supabase
+        .from('friend_requests')
+        .select(`
+        id,
+        sender_id,
+        receiver_id,
+        status,
+        created_at,
+        sender:profiles!friend_requests_sender_id_fkey (
+          id,
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+        .eq('receiver_id', currentUser.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.error('Error loading friend requests:', error);
+        setRequests([]);
+      } else {
+        const incomingRequests = (data || []) as unknown as FriendRequest[];
+
+        setRequests(incomingRequests);
+
+        const receivedMap: Record<string, string> = {};
+
+        incomingRequests.forEach((request) => {
+          receivedMap[request.sender_id] = request.id;
+        });
+
+        setReceivedRequests(receivedMap);
+      }
+
+      setRequestsLoading(false);
+    };
+
+    loadFriendRequests();
+    return () => {
+      isMounted = false;
+    };
   }, [currentUser?.id, supabase]);
 
   // Load real friends
   useEffect(() => {
-    loadFriends();
-  }, [loadFriends]);
+    let isMounted = true;
+    const loadRealFriends = async () => {
+      if (!currentUser?.id) {
+        if (isMounted) {
+          setFriends([]);
+          setFriendsLoading(false);
+        }
+        return;
+      }
+
+      if (isMounted) setFriendsLoading(true);
+
+      const { data: friendships, error: friendshipsError } = await supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id')
+        .eq('status', 'accepted')
+        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+
+      if (!isMounted) return;
+
+      if (friendshipsError) {
+        console.error('Error loading friends:', friendshipsError);
+        setFriends([]);
+        setFriendsLoading(false);
+        return;
+      }
+
+      const friendIds = (friendships || []).map((friendship) =>
+        friendship.sender_id === currentUser.id
+          ? friendship.receiver_id
+          : friendship.sender_id
+      );
+
+      if (friendIds.length === 0) {
+        setFriends([]);
+        setFriendsLoading(false);
+        return;
+      }
+
+      const { data: friendProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, bio')
+        .in('id', friendIds);
+
+      if (!isMounted) return;
+
+      if (profilesError) {
+        console.error('Error loading friend profiles:', profilesError);
+        setFriends([]);
+      } else {
+        setFriends((friendProfiles || []) as Friend[]);
+      }
+
+      setFriendsLoading(false);
+    };
+
+    loadRealFriends();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id, supabase]);
 
   const handleRemoveFriend = async (friendId: string) => {
     if (!currentUser?.id) {
@@ -285,6 +440,25 @@ export default function FriendsPage() {
     );
   };
 
+  const handleCancelSentRequest = async (requestId: string, receiverId: string) => {
+    if (!currentUser?.id) return;
+
+    const { error } = await supabase
+      .from('friend_requests')
+      .delete()
+      .eq('id', requestId)
+      .eq('sender_id', currentUser.id)
+      .eq('status', 'pending');
+
+    if (error) {
+      console.error('Error cancelling friend request:', error);
+      return;
+    }
+
+    setOutboundRequests((prev) => prev.filter((req) => req.id !== requestId));
+    setSentRequests((prev) => prev.filter((id) => id !== receiverId));
+  };
+
   const handleSendFriendRequest = async (receiverId: string) => {
     if (!currentUser?.id) {
       return;
@@ -303,7 +477,7 @@ export default function FriendsPage() {
       return;
     }
 
-    setSentRequests((prev) => [...prev, receiverId]);
+    await fetchSentRequests();
   };
 
   const handleAcceptRequest = async (id: string) => {
@@ -333,7 +507,8 @@ export default function FriendsPage() {
       return updated;
     });
 
-    await loadFriends();
+    await fetchFriends();
+    await fetchSentRequests();
   };
 
   const handleDeclineRequest = async (id: string) => {
@@ -409,87 +584,156 @@ export default function FriendsPage() {
             <div className={styles.emptyState}>
               <p>Загрузка друзей...</p>
             </div>
-          ) : filteredFriends.length > 0 ? (
-            filteredFriends.map((friend) => {
-              const friendName =
-                friend.display_name || friend.username;
+          ) : (
+            <>
+              {filteredFriends.length > 0 ? (
+                filteredFriends.map((friend) => {
+                  const friendName =
+                    friend.display_name || friend.username;
 
-              const friendAvatar =
-                friend.avatar_url || CURRENT_USER.avatarUrl;
+                  const friendAvatar =
+                    friend.avatar_url || CURRENT_USER.avatarUrl;
 
-              return (
-                <div key={friend.id} className={styles.friendRow}>
-                  <div className={styles.avatarWrapper}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={friendAvatar}
-                      alt={friendName}
-                      className={styles.avatar}
-                    />
-                  </div>
+                  return (
+                    <div key={friend.id} className={styles.friendRow}>
+                      <div className={styles.avatarWrapper}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={friendAvatar}
+                          alt={friendName}
+                          className={styles.avatar}
+                        />
+                      </div>
 
-                  <div className={styles.friendInfo}>
-                    <div className={styles.nameLine}>
-                      <span className={styles.name}>
-                        {friendName}
-                      </span>
+                      <div className={styles.friendInfo}>
+                        <div className={styles.nameLine}>
+                          <span className={styles.name}>
+                            {friendName}
+                          </span>
 
-                      <span className={styles.username}>
-                        @{friend.username}
-                      </span>
-                    </div>
-
-                    {/* <span className={styles.statusMsg}>
-                      {friend.bio || 'x'}
-                    </span> */}
-                  </div>
-
-                  <div className={styles.actions}>
-                    <Link
-                      href={`/profile/${friend.username}`}
-                      className={styles.profileLinkBtn}
-                    >
-                      👤 Профиль
-                    </Link>
-
-                    <button
-                      className={styles.iconActionBtn}
-                      title="Написать"
-                    >
-                      💬
-                    </button>
-
-                    {/* ⋯ More menu */}
-                    <div className={styles.menuWrapper} ref={openMenuId === friend.id ? menuRef : null}>
-                      <button
-                        className={styles.iconActionBtn}
-                        title="Действия"
-                        onClick={() => setOpenMenuId(openMenuId === friend.id ? null : friend.id)}
-                      >
-                        ⋯
-                      </button>
-                      {openMenuId === friend.id && (
-                        <div className={styles.dropdownMenu}>
-                          <button
-                            className={styles.dropdownDanger}
-                            onClick={() => {
-                              handleRemoveFriend(friend.id);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            Удалить из друзей
-                          </button>
+                          <span className={styles.username}>
+                            @{friend.username}
+                          </span>
                         </div>
-                      )}
+                      </div>
+
+                      <div className={styles.actions}>
+                        <Link
+                          href={`/profile/${friend.username}`}
+                          className={styles.profileLinkBtn}
+                        >
+                          👤 Профиль
+                        </Link>
+
+                        <button
+                          className={styles.iconActionBtn}
+                          title="Написать"
+                        >
+                          💬
+                        </button>
+
+                        {/* ⋯ More menu */}
+                        <div className={styles.menuWrapper} ref={openMenuId === friend.id ? menuRef : null}>
+                          <button
+                            className={styles.iconActionBtn}
+                            title="Действия"
+                            onClick={() => setOpenMenuId(openMenuId === friend.id ? null : friend.id)}
+                          >
+                            ⋯
+                          </button>
+                          {openMenuId === friend.id && (
+                            <div className={styles.dropdownMenu}>
+                              <button
+                                className={styles.dropdownDanger}
+                                onClick={() => {
+                                  handleRemoveFriend(friend.id);
+                                  setOpenMenuId(null);
+                                }}
+                              >
+                                Удалить из друзей
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  );
+                })
+              ) : outboundRequests.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p>У вас пока нет друзей.</p>
+                </div>
+              ) : null}
+
+              {/* Visually Separated Outbound Pending Requests Section */}
+              {outboundRequests.length > 0 && (
+                <div className={styles.pendingSection}>
+                  <div className={styles.pendingSectionHeader}>
+                    <h3 className={styles.pendingSectionTitle}>
+                      Исходящие запросы
+                    </h3>
+                    <span className={styles.pendingSectionBadge}>
+                      {outboundRequests.length}
+                    </span>
+                  </div>
+                  <div className={styles.pendingList}>
+                    {outboundRequests.map((req) => {
+                      const receiverName =
+                        req.receiver?.display_name || req.receiver?.username || 'Пользователь';
+                      const receiverAvatar =
+                        req.receiver?.avatar_url || CURRENT_USER.avatarUrl;
+
+                      return (
+                        <div key={req.id} className={styles.pendingCardRow}>
+                          <div className={styles.avatarWrapper}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={receiverAvatar}
+                              alt={receiverName}
+                              className={styles.avatar}
+                            />
+                          </div>
+
+                          <div className={styles.friendInfo}>
+                            <div className={styles.nameLine}>
+                              <span className={styles.name}>{receiverName}</span>
+                              {req.receiver?.username && (
+                                <span className={styles.username}>
+                                  @{req.receiver.username}
+                                </span>
+                              )}
+                            </div>
+                            <div className={styles.pendingStatusTag}>
+                              <span className={styles.clockIcon}>⏳</span>
+                              <span>Ожидает подтверждения</span>
+                            </div>
+                          </div>
+
+                          <div className={styles.actions}>
+                            {req.receiver?.username && (
+                              <Link
+                                href={`/profile/${req.receiver.username}`}
+                                className={styles.profileLinkBtn}
+                              >
+                                👤 Профиль
+                              </Link>
+                            )}
+
+                            <button
+                              type="button"
+                              className={styles.cancelRequestBtn}
+                              onClick={() => handleCancelSentRequest(req.id, req.receiver_id)}
+                            >
+                              Отменить запрос
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            <div className={styles.emptyState}>
-              <p>У вас пока нет друзей.</p>
-            </div>
+              )}
+            </>
           )}
         </div>
       )}

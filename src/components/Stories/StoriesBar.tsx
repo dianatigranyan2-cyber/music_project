@@ -16,7 +16,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onSelectStory, 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleStoryClick = (story: Story) => {
-    if (story.isCurrentUser && (!story.mediaUrl || story.id === 'current-user-add')) {
+    if (story.isCurrentUser && story.id === 'current-user-add') {
       fileInputRef.current?.click();
     } else {
       onSelectStory?.(story);
@@ -58,18 +58,13 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onSelectStory, 
       const uploadedPath = uploadData?.path || filePath;
       console.log('Successfully uploaded story to storage path:', uploadedPath);
 
-      const { data: publicUrlData } = supabase.storage
-        .from('stories')
-        .getPublicUrl(uploadedPath);
-
-      const publicUrl = publicUrlData.publicUrl;
       const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
 
       const { data: storyData, error: dbError } = await supabase
         .from('stories')
         .insert({
           user_id: user.id,
-          media_url: publicUrl,
+          media_url: '',
           media_path: uploadedPath,
           media_type: mediaType,
         })
@@ -115,9 +110,14 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onSelectStory, 
             onClick={() => handleStoryClick(story)}
           >
             <div
-              className={`${styles.avatarRing} ${
-                story.hasUnseen ? styles.unseenRing : ''
-              } ${story.isCurrentUser ? styles.userRing : ''}`}
+              className={`${styles.avatarRing} ${story.isCurrentUser
+                ? story.id === 'current-user-add'
+                  ? styles.userRing
+                  : styles.unseenRing
+                : story.hasUnseen
+                  ? styles.unseenRing
+                  : ''
+                }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

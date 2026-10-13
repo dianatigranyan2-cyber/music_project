@@ -27,11 +27,41 @@ export default function Home() {
   const loadStories = useCallback(async () => {
     try {
       const nowIso = new Date().toISOString();
+      if (!currentUser?.id) {
+        setStories([]);
+        return;
+      }
+
+      // Получаем только подтверждённые дружеские связи
+      const { data: friendships, error: friendsError } = await supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id')
+        .eq('status', 'accepted')
+        .or(
+          `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`
+        );
+
+      if (friendsError) {
+        console.error('Error loading friendships:', friendsError);
+        setStories([]);
+        return;
+      }
+
+      // Собираем ID пользователей, чьи истории разрешено видеть
+      const allowedUserIds = [
+        currentUser.id,
+        ...(friendships || []).map((friend) =>
+          friend.sender_id === currentUser.id
+            ? friend.receiver_id
+            : friend.sender_id
+        ),
+      ];
 
       // 1. Fetch non-expired stories from public.stories (ordered created_at ASC so oldest story is first)
       const { data: storiesData, error: storiesError } = await supabase
         .from('stories')
         .select('id, user_id, media_url, media_type, created_at, expires_at')
+        .in('user_id', allowedUserIds)
         .gt('expires_at', nowIso)
         .order('created_at', { ascending: true });
 
@@ -110,7 +140,7 @@ export default function Home() {
           userName,
           userAvatar,
           avatarUrl: userAvatar,
-          mediaUrl: oldestStory.media_url,
+          mediaUrl: '',
           hasUnseen,
           isCurrentUser: isMe,
         });

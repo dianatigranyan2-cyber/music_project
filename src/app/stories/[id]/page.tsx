@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, use } from 'react';
+import React, { useState, useEffect, useRef, use, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
@@ -26,6 +26,14 @@ interface UserStoryGroup {
   userId: string;
   stories: StoryData[];
   profile?: UserProfile;
+}
+
+interface StoryViewerItem {
+  id: string;
+  user_id: string;
+  viewed_at: string;
+  profile?: UserProfile;
+  hasLiked?: boolean;
 }
 
 interface PageProps {
@@ -79,6 +87,10 @@ export default function StoryViewerPage({ params }: PageProps) {
 
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
 
+  const [viewers, setViewers] = useState<StoryViewerItem[]>([]);
+  const [loadingViewers, setLoadingViewers] = useState(false);
+  const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
+
   // Load authenticated user ID
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -92,32 +104,6 @@ export default function StoryViewerPage({ params }: PageProps) {
   useEffect(() => {
     let isMounted = true;
 
-    // Check if storyId is already present in cached userGroups state
-    let foundGroupIdx = -1;
-    let foundStoryIdx = -1;
-    let foundStory: StoryData | null = null;
-
-    userGroups.forEach((g, gIdx) => {
-      const sIdx = g.stories.findIndex((s) => s.id === storyId);
-      if (sIdx !== -1) {
-        foundGroupIdx = gIdx;
-        foundStoryIdx = sIdx;
-        foundStory = g.stories[sIdx];
-      }
-    });
-
-    if (foundGroupIdx !== -1 && foundStoryIdx !== -1 && foundStory) {
-      setCurrentGroupIndex(foundGroupIdx);
-      setCurrentStoryIndex(foundStoryIdx);
-      setStory(foundStory);
-      setProfile(userGroups[foundGroupIdx].profile || null);
-      setProgress(0);
-      setIsMenuOpen(false);
-      setLoading(false);
-      setNotFound(false);
-      return;
-    }
-
     // Otherwise, fetch all active stories from Supabase
     const loadAllActiveStories = async () => {
       try {
@@ -125,9 +111,38 @@ export default function StoryViewerPage({ params }: PageProps) {
         setNotFound(false);
 
         const nowIso = new Date().toISOString();
+        const { data: { user }, error: authError } =
+          await supabase.auth.getUser();
+
+        if (authError || !user) {
+          if (isMounted) setNotFound(true);
+          return;
+        }
+
+        const { data: friendships, error: friendsError } = await supabase
+          .from('friend_requests')
+          .select('sender_id, receiver_id')
+          .eq('status', 'accepted')
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+        if (friendsError) {
+          console.error('Error checking friendships:', friendsError);
+          if (isMounted) setNotFound(true);
+          return;
+        }
+
+        const allowedUserIds = [
+          user.id,
+          ...(friendships || []).map((friend) =>
+            friend.sender_id === user.id
+              ? friend.receiver_id
+              : friend.sender_id
+          ),
+        ];
         const { data: allActiveStories, error: storiesError } = await supabase
           .from('stories')
           .select('id, user_id, media_url, media_path, media_type, created_at, expires_at')
+          .in('user_id', allowedUserIds)
           .gt('expires_at', nowIso)
           .order('created_at', { ascending: true });
 
@@ -142,17 +157,39 @@ export default function StoryViewerPage({ params }: PageProps) {
           return;
         }
 
-        // Group stories by user_id preserving user order (earliest active story)
+        // Create temporary signed URLs for story media
+        const storiesWithSignedUrls = await Promise.all(
+          allActiveStories.map(async (s) => {
+            if (!s.media_path) {
+              return null;
+            }
+
+            const { data, error } = await supabase.storage
+              .from('stories')
+              .createSignedUrl(s.media_path, 300);
+
+            if (error || !data?.signedUrl) {
+              console.error('Error creating story signed URL:', error);
+              return null;
+            }
+
+            return {
+              ...s,
+              media_url: data.signedUrl,
+              media_type: s.media_type === 'video' ? 'video' as const : 'image' as const,
+            };
+          })
+        );
+
         const groupsMap = new Map<string, StoryData[]>();
-        allActiveStories.forEach((s) => {
+
+        storiesWithSignedUrls.forEach((s) => {
+          if (!s) return;
+
           const list = groupsMap.get(s.user_id) || [];
-          list.push({
-            ...s,
-            media_type: s.media_type === 'video' ? 'video' : 'image',
-          });
+          list.push(s);
           groupsMap.set(s.user_id, list);
         });
-
         const userIds = Array.from(groupsMap.keys());
 
         // Fetch user profiles for all story owners
@@ -194,6 +231,7 @@ export default function StoryViewerPage({ params }: PageProps) {
           setProfile(groups[targetGroupIdx].profile || null);
           setProgress(0);
           setIsMenuOpen(false);
+          setIsViewersModalOpen(false);
         }
       } catch (err) {
         console.error('Error loading active stories:', err);
@@ -210,7 +248,248 @@ export default function StoryViewerPage({ params }: PageProps) {
     return () => {
       isMounted = false;
     };
-  }, [storyId, supabase, userGroups]);
+  }, [storyId, supabase]);
+
+  // Load viewers list and likes if current story belongs to current user
+  useEffect(() => {
+    if (!story || !currentUserId || story.user_id !== currentUserId) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchStoryViewers = async () => {
+      try {
+        setLoadingViewers(true);
+        const { data: viewsData, error: viewsError } = await supabase
+          .from('story_views')
+          .select('id, story_id, user_id, viewed_at')
+          .eq('story_id', story.id)
+          .order('viewed_at', { ascending: false });
+
+        if (viewsError) {
+          console.error('Error fetching story viewers:', viewsError);
+          if (isMounted) setViewers([]);
+          return;
+        }
+
+        if (!viewsData || viewsData.length === 0) {
+          if (isMounted) setViewers([]);
+          return;
+        }
+
+        // Deduplication: each viewer must appear exactly once, preserving recent view order
+        const uniqueViewsMap = new Map<string, (typeof viewsData)[0]>();
+        viewsData.forEach((v) => {
+          if (!uniqueViewsMap.has(v.user_id)) {
+            uniqueViewsMap.set(v.user_id, v);
+          }
+        });
+        const uniqueViews = Array.from(uniqueViewsMap.values());
+        const viewerUserIds = uniqueViews.map((v) => v.user_id);
+
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', viewerUserIds);
+
+        if (profilesError) {
+          console.error('Error fetching viewer profiles:', profilesError);
+        }
+
+        // Fetch existing likes (story_reactions) for this story
+        const { data: reactionsData, error: reactionsError } = await supabase
+          .from('story_reactions')
+          .select('id, user_id, reaction')
+          .eq('story_id', story.id);
+
+        if (reactionsError) {
+          console.error('Error fetching story reactions:', reactionsError);
+        }
+
+        const likedUserIds = new Set(
+          (reactionsData || [])
+            .filter((r) => r.reaction === '❤️')
+            .map((r) => r.user_id)
+        );
+
+        const profilesMap = new Map<string, UserProfile>();
+        profilesData?.forEach((p) => {
+          profilesMap.set(p.id, {
+            username: p.username,
+            display_name: p.display_name,
+            avatar_url: p.avatar_url,
+          });
+        });
+
+        const viewerItems: StoryViewerItem[] = uniqueViews.map((v) => ({
+          id: v.id,
+          user_id: v.user_id,
+          viewed_at: v.viewed_at,
+          profile: profilesMap.get(v.user_id),
+          hasLiked: likedUserIds.has(v.user_id),
+        }));
+
+        if (isMounted) {
+          setViewers(viewerItems);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching story viewers:', err);
+        if (isMounted) setViewers([]);
+      } finally {
+        if (isMounted) setLoadingViewers(false);
+      }
+    };
+
+    fetchStoryViewers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [story, currentUserId, supabase]);
+
+  // Realtime subscription for story reactions (likes/unlikes) to update open viewers list without reload
+  useEffect(() => {
+    if (!story || !currentUserId || story.user_id !== currentUserId) {
+      return;
+    }
+
+    const currentStoryId = story.id;
+
+    // Helper to reliably re-fetch active likes for this story
+    const reloadStoryLikes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('story_reactions')
+          .select('user_id, reaction')
+          .eq('story_id', currentStoryId);
+
+        if (error) {
+          console.error('Error reloading story reactions:', error);
+          return;
+        }
+
+        const likedSet = new Set(
+          (data || [])
+            .filter((r) => r.reaction === '❤️')
+            .map((r) => r.user_id)
+        );
+
+        setViewers((prev) =>
+          prev.map((v) => ({
+            ...v,
+            hasLiked: likedSet.has(v.user_id),
+          }))
+        );
+      } catch (err) {
+        console.error('Unexpected error reloading story likes:', err);
+      }
+    };
+
+    const channel = supabase
+      .channel(`story-reactions-${currentStoryId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'story_reactions',
+          filter: `story_id=eq.${currentStoryId}`,
+        },
+        (payload) => {
+          const newRow = payload.new as { user_id?: string; reaction?: string };
+          if (newRow?.user_id && newRow.reaction === '❤️') {
+            setViewers((prev) =>
+              prev.map((v) =>
+                v.user_id === newRow.user_id ? { ...v, hasLiked: true } : v
+              )
+            );
+          } else {
+            reloadStoryLikes();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'story_reactions',
+          filter: `story_id=eq.${currentStoryId}`,
+        },
+        (payload) => {
+          const updatedRow = payload.new as { user_id?: string; reaction?: string };
+          if (updatedRow?.user_id) {
+            const isLiked = updatedRow.reaction === '❤️';
+            setViewers((prev) =>
+              prev.map((v) =>
+                v.user_id === updatedRow.user_id ? { ...v, hasLiked: isLiked } : v
+              )
+            );
+          } else {
+            reloadStoryLikes();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'story_reactions',
+        },
+        (payload) => {
+          const oldRow = payload.old as { id?: string; story_id?: string; user_id?: string };
+          // If story_id is present (REPLICA IDENTITY FULL), ignore events from other stories
+          if (oldRow?.story_id && oldRow.story_id !== currentStoryId) {
+            return;
+          }
+
+          // If user_id is present, optimistically remove heart immediately
+          if (oldRow?.user_id) {
+            setViewers((prev) =>
+              prev.map((v) =>
+                v.user_id === oldRow.user_id ? { ...v, hasLiked: false } : v
+              )
+            );
+          }
+
+          // Always re-fetch active likes for current story to ensure 100% sync
+          reloadStoryLikes();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      // Clean up previous channel subscription on story switch or unmount
+      supabase.removeChannel(channel);
+    };
+  }, [story?.id, currentUserId, supabase]);
+
+  // Re-verify likes whenever viewers modal is opened
+  useEffect(() => {
+    if (!isViewersModalOpen || !story || !currentUserId || story.user_id !== currentUserId) {
+      return;
+    }
+
+    const verifyLikesOnOpen = async () => {
+      const { data, error } = await supabase
+        .from('story_reactions')
+        .select('user_id, reaction')
+        .eq('story_id', story.id);
+
+      if (!error && data) {
+        const likedSet = new Set(
+          data.filter((r) => r.reaction === '❤️').map((r) => r.user_id)
+        );
+        setViewers((prev) =>
+          prev.map((v) => ({ ...v, hasLiked: likedSet.has(v.user_id) }))
+        );
+      }
+    };
+
+    verifyLikesOnOpen();
+  }, [isViewersModalOpen, story, currentUserId, supabase]);
 
   // Mark current story as viewed in public.story_views if it belongs to another user
   useEffect(() => {
@@ -223,17 +502,14 @@ export default function StoryViewerPage({ params }: PageProps) {
         } = await supabase.auth.getUser();
 
         if (user && story.user_id !== user.id) {
-          const { error } = await supabase.from('story_views').upsert(
-            {
+          const { error } = await supabase
+            .from('story_views')
+            .insert({
               story_id: story.id,
               user_id: user.id,
-            },
-            {
-              onConflict: 'story_id,user_id',
-            }
-          );
+            });
 
-          if (error) {
+          if (error && error.code !== '23505') {
             console.error('Error marking story as viewed in story_views:', error);
           }
         }
@@ -326,7 +602,7 @@ export default function StoryViewerPage({ params }: PageProps) {
   };
 
   // Navigation handlers
-  const goToNextStory = () => {
+  const goToNextStory = useCallback(() => {
     const currentGroup = userGroups[currentGroupIndex];
     if (!currentGroup) return;
 
@@ -343,9 +619,9 @@ export default function StoryViewerPage({ params }: PageProps) {
       // End of all user stories -> return to home
       router.push('/');
     }
-  };
+  }, [currentGroupIndex, currentStoryIndex, router, userGroups]);
 
-  const goToPrevStory = () => {
+  const goToPrevStory = useCallback(() => {
     const currentGroup = userGroups[currentGroupIndex];
     if (!currentGroup) return;
 
@@ -359,11 +635,11 @@ export default function StoryViewerPage({ params }: PageProps) {
       const lastStoryOfPrevUser = prevGroup.stories[prevGroup.stories.length - 1];
       router.push(`/stories/${lastStoryOfPrevUser.id}`);
     }
-  };
+  }, [currentGroupIndex, currentStoryIndex, router, userGroups]);
 
   // Timer for IMAGE stories (5 seconds)
   useEffect(() => {
-    if (loading || notFound || !story || story.media_type !== 'image' || isPaused || isMenuOpen) {
+    if (loading || notFound || !story || story.media_type !== 'image' || isPaused || isMenuOpen || isViewersModalOpen) {
       return;
     }
 
@@ -385,7 +661,7 @@ export default function StoryViewerPage({ params }: PageProps) {
     return () => {
       clearInterval(timer);
     };
-  }, [loading, notFound, story, isPaused, isMenuOpen, currentGroupIndex, currentStoryIndex, userGroups]);
+  }, [loading, notFound, story, isPaused, isMenuOpen, isViewersModalOpen, goToNextStory]);
 
   // Video event handlers
   const handleVideoTimeUpdate = () => {
@@ -401,7 +677,7 @@ export default function StoryViewerPage({ params }: PageProps) {
 
   // Press-and-hold pause and tap navigation logic
   const handlePointerDown = () => {
-    if (isMenuOpen) return;
+    if (isMenuOpen || isViewersModalOpen) return;
     pressStartTimeRef.current = Date.now();
     setIsPaused(true);
     if (story?.media_type === 'video' && videoRef.current) {
@@ -410,7 +686,7 @@ export default function StoryViewerPage({ params }: PageProps) {
   };
 
   const handlePointerUp = (direction: 'left' | 'right') => {
-    if (isMenuOpen) return;
+    if (isMenuOpen || isViewersModalOpen) return;
     const pressDuration = Date.now() - pressStartTimeRef.current;
     setIsPaused(false);
     if (story?.media_type === 'video' && videoRef.current) {
@@ -633,7 +909,28 @@ export default function StoryViewerPage({ params }: PageProps) {
         {/* Story Footer Controls */}
         {!loading && !notFound && story && (
           <div className={styles.storyFooter}>
-            {sentNotice ? (
+            {isOwnStory ? (
+              <div className={styles.ownerFooterControls}>
+                <button
+                  type="button"
+                  className={styles.viewersToggleBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsViewersModalOpen(true);
+                    setIsPaused(true);
+                    if (story?.media_type === 'video' && videoRef.current) {
+                      videoRef.current.pause();
+                    }
+                  }}
+                  title="Просмотры истории"
+                >
+                  <span className={styles.eyeIcon}>👁️</span>
+                  <span className={styles.viewersCountLabel}>
+                    {viewers.length} {viewers.length === 1 ? '' : (viewers.length >= 2 && viewers.length <= 4) ? '' : ''}
+                  </span>
+                </button>
+              </div>
+            ) : sentNotice ? (
               <div className={styles.sentBadge}>✓ Сообщение отправлено!</div>
             ) : (
               <form onSubmit={handleSendReply} className={styles.replyForm}>
@@ -662,6 +959,88 @@ export default function StoryViewerPage({ params }: PageProps) {
                 </button>
               </form>
             )}
+          </div>
+        )}
+
+        {/* Viewers Drawer Modal for Story Owner */}
+        {isOwnStory && isViewersModalOpen && (
+          <div
+            className={styles.viewersModalOverlay}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsViewersModalOpen(false);
+              setIsPaused(false);
+              if (story?.media_type === 'video' && videoRef.current) {
+                videoRef.current.play().catch(() => { });
+              }
+            }}
+          >
+            <div
+              className={styles.viewersModalContent}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.viewersHeader}>
+                <div className={styles.viewersTitleGroup}>
+                  <span className={styles.viewersTitle}>Просмотры</span>
+                  <span className={styles.viewersBadge}>{viewers.length}</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.closeViewersBtn}
+                  onClick={() => {
+                    setIsViewersModalOpen(false);
+                    setIsPaused(false);
+                    if (story?.media_type === 'video' && videoRef.current) {
+                      videoRef.current.play().catch(() => { });
+                    }
+                  }}
+                  title="Закрыть"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className={styles.viewersListContainer}>
+                {loadingViewers ? (
+                  <div className={styles.viewersStatusState}>Загрузка просмотров...</div>
+                ) : viewers.length === 0 ? (
+                  <div className={styles.viewersStatusState}>Пока нет просмотров</div>
+                ) : (
+                  <div className={styles.viewersList}>
+                    {viewers.map((v) => {
+                      const vName = v.profile?.display_name || v.profile?.username || 'Пользователь';
+                      const vAvatar = v.profile?.avatar_url || '/default-avatar.png';
+                      const vTime = v.viewed_at ? formatTimeAgo(v.viewed_at) : '';
+                      return (
+                        <div key={v.id} className={styles.viewerRow}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={vAvatar} alt={vName} className={styles.viewerAvatar} />
+                          <div className={styles.viewerMeta}>
+                            <div className={styles.viewerNameRow}>
+                              <span className={styles.viewerName}>{vName}</span>
+                              {v.hasLiked && (
+                                <span
+                                  className={styles.viewerLikedHeart}
+                                  role="img"
+                                  aria-label="Поставил(а) лайк"
+                                  title="Поставил(а) лайк"
+                                >
+                                  ❤️
+                                </span>
+                              )}
+                            </div>
+                            {v.profile?.username && (
+                              <span className={styles.viewerSubname}>@{v.profile.username}</span>
+                            )}
+                          </div>
+                          {vTime && <span className={styles.viewerTime}>{vTime}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

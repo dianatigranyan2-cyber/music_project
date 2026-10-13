@@ -206,7 +206,7 @@ export default function MessagesPage() {
 
     const { data, error } = await supabase
       .from('stories')
-      .select('id, media_url, media_type')
+      .select('id, media_path, media_type, expires_at')
       .in('id', ids);
 
     if (error) {
@@ -218,10 +218,32 @@ export default function MessagesPage() {
 
     if (!error && data) {
       for (const story of data) {
+        // Expired or missing stories should not display previews
+        if (
+          !story.media_path ||
+          new Date(story.expires_at).getTime() <= Date.now()
+        ) {
+          foundIds.add(story.id);
+          updates[story.id] = null;
+          continue;
+        }
+
+        const { data: signedData, error: signedError } =
+          await supabase.storage
+            .from('stories')
+            .createSignedUrl(story.media_path, 300);
+
         foundIds.add(story.id);
+
+        if (signedError || !signedData?.signedUrl) {
+          console.error('Error loading story preview:', signedError);
+          updates[story.id] = null;
+          continue;
+        }
+
         updates[story.id] = {
           id: story.id,
-          media_url: story.media_url,
+          media_url: signedData.signedUrl,
           media_type: story.media_type === 'video' ? 'video' : 'image',
         };
       }
