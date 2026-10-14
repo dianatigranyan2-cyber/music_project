@@ -5,17 +5,20 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './Navigation.module.css';
 import { usePlayer } from '../../context/PlayerContext';
+import { useMessageNotifications } from '../../context/MessageNotificationsContext';
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
   const { mobileChatOpen } = usePlayer();
+  const { unreadCount, setSelectedChatId } = useMessageNotifications();
+  const messageBadge = unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : undefined;
 
   const navItems = [
     { id: 'home', href: '/', label: 'Главная', icon: '🏠' },
     { id: 'explore', href: '/explore', label: 'Обзор', icon: '🧭' },
     { id: 'friends', href: '/friends', label: 'Друзья', icon: '👥', badge: '3' },
     { id: 'playlists', href: '/playlists', label: 'Плейлисты', icon: '🎵' },
-    { id: 'messages', href: '/messages', label: 'Сообщения', icon: '💬', badge: '2' },
+    { id: 'messages', href: '/messages', label: 'Сообщения', icon: '💬', badge: messageBadge },
     { id: 'profile', href: '/profile', label: 'Профиль', icon: '👤' },
     { id: 'settings', href: '/settings', label: 'Настройки', icon: '⚙️' },
   ];
@@ -38,11 +41,17 @@ export const Navigation: React.FC = () => {
               <Link
                 key={item.id}
                 href={item.href}
+                onClick={item.id === 'messages' ? () => setSelectedChatId(null) : undefined}
+                aria-label={item.id === 'messages' && unreadCount > 0 ? `Сообщения: ${unreadCount} непрочитанных` : undefined}
                 className={`${styles.navItem} ${isActive ? styles.active : ''}`}
               >
                 <span className={styles.icon}>{item.icon}</span>
                 <span className={styles.label}>{item.label}</span>
-                {item.badge && <span className={styles.badge}>{item.badge}</span>}
+                {item.badge && (
+                  <span className={`${styles.badge} ${item.id === 'messages' ? styles.messageBadge : ''}`} aria-hidden="true">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -66,9 +75,16 @@ export const Navigation: React.FC = () => {
             <Link
               key={item.id}
               href={item.href}
+              onClick={item.id === 'messages' ? () => setSelectedChatId(null) : undefined}
+              aria-label={item.id === 'messages' && unreadCount > 0 ? `Сообщения: ${unreadCount} непрочитанных` : undefined}
               className={`${styles.mobileNavItem} ${isActive ? styles.mobileActive : ''}`}
             >
-              <span className={styles.mobileIcon}>{item.icon}</span>
+              <span className={styles.mobileIcon}>
+                {item.icon}
+                {item.id === 'messages' && messageBadge && (
+                  <span className={styles.mobileMessageBadge} aria-hidden="true">{messageBadge}</span>
+                )}
+              </span>
               <span className={styles.mobileLabel}>{item.label}</span>
             </Link>
           );

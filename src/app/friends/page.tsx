@@ -8,6 +8,7 @@ import { CURRENT_USER } from '../../data/mockData';
 import { usePlayer } from '../../context/PlayerContext';
 import { useAuth } from '../../context/AuthContext';
 import { createClient } from '../../lib/supabase/client';
+import { useSocialPresence } from '../../context/SocialPresenceContext';
 
 interface UserSearchResult {
   id: string;
@@ -59,6 +60,7 @@ function FriendsPageContent() {
   const searchParams = useSearchParams();
   const { searchQuery: headerSearchQuery } = usePlayer();
   const { user: currentUser } = useAuth();
+  const { getOnlineStatus, getStatusLabel } = useSocialPresence();
   const [supabase] = useState(() => createClient());
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
@@ -610,6 +612,10 @@ function FriendsPageContent() {
                           alt={friendName}
                           className={styles.avatar}
                         />
+                        <span
+                          className={`${styles.onlineDot} ${getOnlineStatus(friend.id) === 'online' ? styles.online : styles.offline}`}
+                          title={getStatusLabel(friend.id)}
+                        />
                       </div>
 
                       <div className={styles.friendInfo}>
@@ -622,6 +628,7 @@ function FriendsPageContent() {
                             @{friend.username}
                           </span>
                         </div>
+                        <span className={styles.statusMsg}>{getStatusLabel(friend.id)}</span>
                       </div>
 
                       <div className={styles.actions}>

@@ -7,6 +7,8 @@ import { Header } from '../Header/Header';
 import { Player } from '../Player/Player';
 import { PlayerProvider, usePlayer } from '../../context/PlayerContext';
 import { AuthProvider } from '../../context/AuthContext';
+import { MessageNotificationsProvider } from '../../context/MessageNotificationsContext';
+import { SocialPresenceProvider } from '../../context/SocialPresenceContext';
 import { CURRENT_USER } from '../../data/mockData';
 
 const InnerShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -41,7 +43,11 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return (
     <AuthProvider>
       <PlayerProvider>
-        <InnerShell>{children}</InnerShell>
+        <SocialPresenceProvider>
+          <MessageNotificationsProvider>
+            <InnerShell>{children}</InnerShell>
+          </MessageNotificationsProvider>
+        </SocialPresenceProvider>
       </PlayerProvider>
     </AuthProvider>
   );

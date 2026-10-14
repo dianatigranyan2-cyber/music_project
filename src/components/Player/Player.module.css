@@ -242,6 +242,7 @@
   padding: 24px 20px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
   animation: slideUp 0.3s ease;
 }
 
@@ -286,6 +287,7 @@
 .expandedCoverWrapper {
   width: 220px;
   height: 220px;
+  flex-shrink: 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
@@ -310,12 +312,15 @@
 }
 
 .expandedArtist {
+  display: block;
   font-size: 14px;
   color: var(--accent-purple-light);
   font-weight: 500;
 }
 
 .expandedAlbum {
+  display: block;
+  margin-top: 5px;
   font-size: 12px;
   color: var(--text-dim);
 }
@@ -423,3 +428,10 @@
     display: none !important;
   }
 }
+
+.playbackStatus { display: block; max-width: 220px; font-size: 10px; color: #e9b3ce; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expandedStatus { color: #e9b3ce; font-size: 13px; }
+.sourceLink { color: #d8b4fe; font-size: 11px; white-space: nowrap; }
+.attribution { color: var(--text-muted); font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; margin-top: 12px; }
+.attribution a { color: #d8b4fe; }
+.playerContainer button:disabled, .mobileExpandedOverlay button:disabled { opacity: .35; cursor: default; }

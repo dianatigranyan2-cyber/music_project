@@ -11,6 +11,9 @@ import styles from './page.module.css';
 import { usePlayer } from '../../context/PlayerContext';
 
 import { useAuth } from '../../context/AuthContext';
+import { useMessageNotifications } from '../../context/MessageNotificationsContext';
+import { useSocialPresence } from '../../context/SocialPresenceContext';
+import { useTypingIndicator } from '../../hooks/useTypingIndicator';
 
 import { createClient } from '../../lib/supabase/client';
 
@@ -170,7 +173,9 @@ export default function MessagesPage() {
 
 
 
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const { selectedChatId, setSelectedChatId } = useMessageNotifications();
+  const { getOnlineStatus, getStatusLabel } = useSocialPresence();
+  const { isTyping, updateTyping, stopTyping } = useTypingIndicator(currentUser?.id ?? null, selectedChatId);
 
   const [inputMessage, setInputMessage] = useState('');
 
@@ -1590,6 +1595,7 @@ export default function MessagesPage() {
 
 
     if (!content || !selectedChatId || !currentUser) return;
+    stopTyping();
 
 
 
@@ -1910,6 +1916,10 @@ export default function MessagesPage() {
                       className={styles.avatar}
 
                     />
+                    <span
+                      className={`${styles.onlineDot} ${getOnlineStatus(friend.id) === 'online' ? styles.online : styles.offline}`}
+                      title={getStatusLabel(friend.id)}
+                    />
 
                   </div>
 
@@ -2135,9 +2145,9 @@ export default function MessagesPage() {
 
 
 
-                  <span className={styles.headerStatus}>
+                  <span className={`${styles.headerStatus} ${isTyping ? styles.typingStatus : ''}`} aria-live="polite">
 
-                    @{activeFriend.username}
+                    {isTyping ? 'печатает…' : getStatusLabel(activeFriend.id)}
 
                   </span>
 
@@ -2613,11 +2623,11 @@ export default function MessagesPage() {
 
                 value={inputMessage}
 
-                onChange={(e) =>
-
-                  setInputMessage(e.target.value)
-
-                }
+                onChange={(e) => {
+                  setInputMessage(e.target.value);
+                  updateTyping(Boolean(e.target.value.trim()));
+                }}
+                onBlur={stopTyping}
 
                 className={styles.messageInput}
 

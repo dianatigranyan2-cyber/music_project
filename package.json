@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "music:prepare": "node scripts/prepare-music.mjs",
+    "music:seed": "node scripts/music-seed.mjs",
+    "test:music": "node --test tests/music-library.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

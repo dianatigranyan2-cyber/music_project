@@ -2,9 +2,19 @@ export interface Track {
   id: string;
   title: string;
   artist: string;
+  artistId?: string;
   album: string;
+  albumId?: string;
   coverUrl: string;
   duration: number; // in seconds
+  source?: 'library';
+  sourceUrl?: string;
+  streamUrl?: string;
+  genre?: string;
+  trackNumber?: number;
+  attribution?: string;
+  licenseUrl?: string;
+  licenseCode?: string;
 }
 
 export interface Friend {

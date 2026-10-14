@@ -308,6 +308,10 @@
   color: var(--text-muted);
 }
 
+.typingStatus {
+  color: var(--accent-purple-light);
+}
+
 .messagesContainer {
   flex: 1;
   padding: 20px;

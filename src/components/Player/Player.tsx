@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { MusicQueue } from '../Music/MusicQueue';
 import styles from './Player.module.css';
 import { Track } from '../../types';
 import { usePlayer } from '../../context/PlayerContext';
@@ -12,25 +14,16 @@ interface PlayerProps {
 }
 
 export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPrevTrack }) => {
-  const { mobileChatOpen } = usePlayer();
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [currentTime, setCurrentTime] = useState(45);
-  const [volume, setVolume] = useState(80);
-  const [isMuted, setIsMuted] = useState(false);
+  const {
+    mobileChatOpen, isPlaying, currentTime, duration, loading, error,
+    togglePlayback, seek, volume, setVolume, isMuted, toggleMuted,
+    isRepeat, toggleRepeat, canSkip, isShuffle, toggleShuffle, canShuffle, setSearchQuery,
+  } = usePlayer();
   const [isLiked, setIsLiked] = useState(false);
-  const [isShuffle, setIsShuffle] = useState(false);
-  const [isRepeat, setIsRepeat] = useState(false);
   const [isExpandedMobile, setIsExpandedMobile] = useState(false);
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isPlaying) {
-      timer = setInterval(() => {
-        setCurrentTime((prev) => (prev >= currentTrack.duration ? 0 : prev + 1));
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [isPlaying, currentTrack.duration]);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const playable = Boolean(currentTrack.source);
+  const status = error ?? (loading ? 'Загрузка…' : '');
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -39,26 +32,25 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
   };
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentTime(Number(e.target.value));
+    seek(Number(e.target.value));
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value);
-    setVolume(val);
-    if (val === 0) setIsMuted(true);
-    else setIsMuted(false);
+    setVolume(Number(e.target.value));
   };
 
   return (
     <>
+      {queueOpen && <MusicQueue onClose={() => setQueueOpen(false)} />}
       {/* Full Expanded Player Overlay for Mobile */}
       {isExpandedMobile && (
         <div className={styles.mobileExpandedOverlay}>
           <div className={styles.expandedHeader}>
-            <button className={styles.closeBtn} onClick={() => setIsExpandedMobile(false)}>
+            <button className={styles.closeBtn} aria-label="Свернуть плеер" onClick={() => setIsExpandedMobile(false)}>
               ▼
             </button>
             <span className={styles.expandedHeaderTitle}>Сейчас играет</span>
+            <button className={styles.smallBtn} aria-label="Открыть очередь" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}>☷</button>
             <button
               className={`${styles.likeBtn} ${isLiked ? styles.liked : ''}`}
               onClick={() => setIsLiked(!isLiked)}
@@ -73,14 +65,22 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
               <img
                 src={currentTrack.coverUrl}
                 alt={currentTrack.title}
+                onError={({ currentTarget }) => {
+                  if (!currentTarget.src.endsWith('/music-placeholder.svg')) currentTarget.src = '/music-placeholder.svg';
+                }}
                 className={styles.expandedCover}
               />
             </div>
 
             <div className={styles.expandedMeta}>
               <h3 className={styles.expandedTitle}>{currentTrack.title}</h3>
-              <p className={styles.expandedArtist}>{currentTrack.artist}</p>
-              <span className={styles.expandedAlbum}>{currentTrack.album}</span>
+              {currentTrack.artistId ? <Link className={styles.expandedArtist} href={'/music/artists/' + currentTrack.artistId} onClick={() => { setSearchQuery(''); setIsExpandedMobile(false); }}>{currentTrack.artist}</Link>
+                : <p className={styles.expandedArtist}>{currentTrack.artist}</p>}
+              {currentTrack.sourceUrl ? (
+                <a className={styles.expandedAlbum} href={currentTrack.sourceUrl} target="_blank" rel="noopener noreferrer">Источник трека ↗</a>
+              ) : <span className={styles.expandedAlbum}>{currentTrack.album}</span>}
+              {currentTrack.attribution && <p className={styles.attribution}>{currentTrack.attribution} <a href={currentTrack.licenseUrl} target="_blank" rel="noopener noreferrer">{currentTrack.licenseCode?.replaceAll('-', ' ') ?? 'Лицензия'}</a></p>}
+              {status && <p className={styles.expandedStatus} role="status">{status}</p>}
             </div>
 
             {/* Timeline Seek Bar */}
@@ -88,17 +88,19 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
               <input
                 type="range"
                 min={0}
-                max={currentTrack.duration}
-                value={currentTime}
+                max={duration || 0}
+                value={Math.min(currentTime, duration || 0)}
                 onChange={handleSeekChange}
+                disabled={!playable || !duration}
+                aria-label="Позиция воспроизведения"
                 className={styles.seekBar}
                 style={{
-                  backgroundSize: `${(currentTime / currentTrack.duration) * 100}% 100%`,
+                  backgroundSize: `${(duration ? currentTime / duration : 0) * 100}% 100%`,
                 }}
               />
               <div className={styles.timeLabelsRow}>
                 <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(currentTrack.duration)}</span>
+                <span>{formatTime(duration)}</span>
               </div>
             </div>
 
@@ -106,25 +108,30 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
             <div className={styles.expandedControls}>
               <button
                 className={`${styles.smallBtn} ${isShuffle ? styles.activeMode : ''}`}
-                onClick={() => setIsShuffle(!isShuffle)}
+                onClick={toggleShuffle} disabled={!canShuffle} aria-label="Случайный порядок" aria-pressed={isShuffle}
               >
                 🔀
               </button>
-              <button className={styles.stepBtn} onClick={onPrevTrack}>
+              <button className={styles.stepBtn} onClick={onPrevTrack} disabled={!playable} aria-label="Предыдущий трек">
                 ⏮
               </button>
               <button
                 className={styles.expandedPlayPauseBtn}
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={togglePlayback}
+                disabled={!playable}
+                aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
               >
                 {isPlaying ? '⏸' : '▶'}
               </button>
-              <button className={styles.stepBtn} onClick={onNextTrack}>
+              <button className={styles.stepBtn} onClick={onNextTrack} disabled={!canSkip} aria-label="Следующий трек">
                 ⏭
               </button>
               <button
                 className={`${styles.smallBtn} ${isRepeat ? styles.activeMode : ''}`}
-                onClick={() => setIsRepeat(!isRepeat)}
+                onClick={toggleRepeat}
+                disabled={!playable}
+                aria-label="Повтор трека"
+                aria-pressed={isRepeat}
               >
                 🔁
               </button>
@@ -132,7 +139,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
 
             {/* Volume Control */}
             <div className={styles.expandedVolume}>
-              <button className={styles.volumeBtn} onClick={() => setIsMuted(!isMuted)}>
+              <button className={styles.volumeBtn} onClick={toggleMuted}>
                 {isMuted || volume === 0 ? '🔇' : '🔊'}
               </button>
               <input
@@ -141,6 +148,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
                 max={100}
                 value={isMuted ? 0 : volume}
                 onChange={handleVolumeChange}
+                aria-label="Громкость"
                 className={styles.volumeBar}
                 style={{
                   backgroundSize: `${isMuted ? 0 : volume}% 100%`,
@@ -160,12 +168,17 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
             <img
               src={currentTrack.coverUrl}
               alt={currentTrack.title}
+              onError={({ currentTarget }) => {
+                if (!currentTarget.src.endsWith('/music-placeholder.svg')) currentTarget.src = '/music-placeholder.svg';
+              }}
               className={styles.cover}
             />
           </div>
           <div className={styles.meta}>
             <span className={styles.title}>{currentTrack.title}</span>
-            <span className={styles.artist}>{currentTrack.artist}</span>
+            {currentTrack.artistId ? <Link className={styles.artist} href={'/music/artists/' + currentTrack.artistId} onClick={(event) => { event.stopPropagation(); setSearchQuery(''); }}>{currentTrack.artist}</Link>
+              : <span className={styles.artist}>{currentTrack.artist}</span>}
+            {status && <span className={styles.playbackStatus} role="status" title={status}>{status}</span>}
           </div>
           <button
             className={`${styles.likeBtn} ${styles.desktopOnly} ${isLiked ? styles.liked : ''}`}
@@ -183,25 +196,30 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
           <div className={styles.buttonsRow}>
             <button
               className={`${styles.smallBtn} ${isShuffle ? styles.activeMode : ''}`}
-              onClick={() => setIsShuffle(!isShuffle)}
+              onClick={toggleShuffle} disabled={!canShuffle} aria-label="Случайный порядок" aria-pressed={isShuffle}
             >
               🔀
             </button>
-            <button className={styles.stepBtn} onClick={onPrevTrack}>
+            <button className={styles.stepBtn} onClick={onPrevTrack} disabled={!playable} aria-label="Предыдущий трек">
               ⏮
             </button>
             <button
               className={styles.playPauseBtn}
-              onClick={() => setIsPlaying(!isPlaying)}
+              onClick={togglePlayback}
+                disabled={!playable}
+                aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
             >
               {isPlaying ? '⏸' : '▶'}
             </button>
-            <button className={styles.stepBtn} onClick={onNextTrack}>
+            <button className={styles.stepBtn} onClick={onNextTrack} disabled={!canSkip} aria-label="Следующий трек">
               ⏭
             </button>
             <button
               className={`${styles.smallBtn} ${isRepeat ? styles.activeMode : ''}`}
-              onClick={() => setIsRepeat(!isRepeat)}
+              onClick={toggleRepeat}
+                disabled={!playable}
+                aria-label="Повтор трека"
+                aria-pressed={isRepeat}
             >
               🔁
             </button>
@@ -212,25 +230,30 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
             <input
               type="range"
               min={0}
-              max={currentTrack.duration}
-              value={currentTime}
+              max={duration || 0}
+              value={Math.min(currentTime, duration || 0)}
               onChange={handleSeekChange}
+                disabled={!playable || !duration}
+                aria-label="Позиция воспроизведения"
               className={styles.seekBar}
               style={{
-                backgroundSize: `${(currentTime / currentTrack.duration) * 100}% 100%`,
+                backgroundSize: `${(duration ? currentTime / duration : 0) * 100}% 100%`,
               }}
             />
-            <span className={styles.timeLabel}>{formatTime(currentTrack.duration)}</span>
+            <span className={styles.timeLabel}>{formatTime(duration)}</span>
           </div>
         </div>
 
         {/* Mobile Quick Play Controls */}
         <div className={styles.mobileQuickControls}>
+          <button className={styles.expandBtn} aria-label="Открыть очередь" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}>☷</button>
           <button
             className={styles.mobilePlayBtn}
+            disabled={!playable}
+            aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
             onClick={(e) => {
               e.stopPropagation();
-              setIsPlaying(!isPlaying);
+              togglePlayback();
             }}
           >
             {isPlaying ? '⏸' : '▶'}
@@ -242,6 +265,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
               setIsExpandedMobile(true);
             }}
             title="Открыть плеер"
+            aria-label="Открыть плеер"
           >
             ▲
           </button>
@@ -249,7 +273,8 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
 
         {/* Right: Volume (Desktop) */}
         <div className={styles.volumeSection}>
-          <button className={styles.volumeBtn} onClick={() => setIsMuted(!isMuted)}>
+          <button className={styles.smallBtn} aria-label="Открыть очередь" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}>☷</button>
+          <button className={styles.volumeBtn} onClick={toggleMuted}>
             {isMuted || volume === 0 ? '🔇' : volume < 50 ? '🔉' : '🔊'}
           </button>
           <input
@@ -258,15 +283,15 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
             max={100}
             value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
+                aria-label="Громкость"
             className={styles.volumeBar}
             style={{
               backgroundSize: `${isMuted ? 0 : volume}% 100%`,
             }}
           />
-          <div className={styles.listenTogetherBadge}>
-            <span className={styles.liveIndicator} />
-            <span className={styles.liveText}>Синхронизировано</span>
-          </div>
+          {currentTrack.sourceUrl && (
+            <Link className={styles.sourceLink} href={'/music/artists/' + currentTrack.artistId} onClick={() => setSearchQuery('')}>Автор и лицензия</Link>
+          )}
         </div>
       </div>
     </>

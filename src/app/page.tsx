@@ -9,9 +9,9 @@ import { usePlayer } from '../context/PlayerContext';
 import { useAuth } from '../context/AuthContext';
 import { createClient } from '../lib/supabase/client';
 import {
-  DEMO_TRACKS,
   MOCK_FRIENDS,
 } from '../data/mockData';
+import { MusicLibrary } from '../components/Music/MusicLibrary';
 import { Track, Story } from '../types';
 
 import { useRouter } from 'next/navigation';
@@ -205,12 +205,6 @@ export default function Home() {
     return true;
   });
 
-  const formatDuration = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div>
       {/* Friends Stories */}
@@ -277,45 +271,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Recommended Demo Tracks */}
-      <section className={styles.recommendSection}>
-        <div className={styles.sectionHeader}>
-          <h3 className={styles.sectionTitle}>Демо-треки на Melo</h3>
-        </div>
-        <div className={styles.tracksList}>
-          {DEMO_TRACKS.map((track, idx) => (
-            <div
-              key={track.id}
-              className={`${styles.trackRow} ${track.id === currentTrack.id ? styles.trackRowActive : ''
-                }`}
-              onClick={() => playTrack(track)}
-            >
-              <div className={styles.trackRowLeft}>
-                <span className={styles.trackIndex}>{idx + 1}</span>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={track.coverUrl}
-                  alt={track.title}
-                  className={styles.trackRowCover}
-                />
-                <div className={styles.trackRowMeta}>
-                  <span className={styles.trackRowTitle}>{track.title}</span>
-                  <span className={styles.trackRowArtist}>{track.artist}</span>
-                </div>
-              </div>
-
-              <div className={styles.trackRowRight}>
-                <span className={styles.trackRowDuration}>
-                  {formatDuration(track.duration)}
-                </span>
-                <div className={styles.playTrackIcon}>
-                  {track.id === currentTrack.id ? '▶' : '🎵'}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <MusicLibrary compact />
     </div>
   );
 }
