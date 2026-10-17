@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
 import {useEffect,useId,useRef,useState} from 'react';
 import {BlockUser} from '../Profile/BlockUser';
 import styles from './ChatActions.module.css';
@@ -15,7 +16,7 @@ export function ChatActions({peerId,name,musicDisabled,onMusic}:{peerId:string;n
   return <div className={styles.wrapper} ref={ref}>
     <button type="button" className={styles.trigger} aria-label="Действия чата" aria-expanded={open} aria-controls={id} onClick={()=>setOpen(value=>!value)}>⋯</button>
     {open&&<div id={id} className={styles.menu} role="group" aria-label="Действия чата">
-      <button type="button" className={styles.item} disabled={musicDisabled} onClick={()=>{setOpen(false);onMusic();}}>♫ Отправить музыку</button>
+      <button type="button" className={styles.item} disabled={musicDisabled} onClick={()=>{setOpen(false);onMusic();}}><AppIcon name="music" size={16}/> Отправить музыку</button>
       <BlockUser id={peerId} name={name} placement="menu"/>
     </div>}
   </div>;

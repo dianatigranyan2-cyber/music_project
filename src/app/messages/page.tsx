@@ -1,4 +1,6 @@
 'use client';
+import { Avatar } from '../../components/Profile/Avatar';
+import { AppIcon } from '../../components/Icons/AppIcon';
 
 
 
@@ -1814,7 +1816,7 @@ function MessagesSessionPage() {
 
             <span className={styles.searchIcon}>
 
-              🔍
+              <AppIcon name="search" size={18}/>
 
             </span>
 
@@ -1900,14 +1902,13 @@ function MessagesSessionPage() {
 
                   <div className={styles.avatarWrapper}>
 
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Avatar
 
                       src={
 
                         friend.avatar_url ||
 
-                        '/default-avatar.png'
+                        null
 
                       }
 
@@ -2113,14 +2114,13 @@ function MessagesSessionPage() {
 
               <div className={styles.headerUserInfo}>
 
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Avatar
 
                   src={
 
                     activeFriend.avatar_url ||
 
-                    '/default-avatar.png'
+                    null
 
                   }
 
@@ -2243,14 +2243,13 @@ function MessagesSessionPage() {
 
                           showAvatar ? (
 
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <Avatar
 
                               src={
 
                                 activeFriend.avatar_url ||
 
-                                '/default-avatar.png'
+                                null
 
                               }
 

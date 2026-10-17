@@ -37,7 +37,7 @@
   height: 18px;
   padding: 0 4px;
   border-radius: var(--radius-full);
-  background: #db2777;
+  background: var(--accent-purple);
   color: #fff;
   border: 2px solid var(--bg-dark);
   font-size: 10px;

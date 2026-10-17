@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../../components/Icons/AppIcon';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -83,7 +84,7 @@ export default function RegisterPage() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.brandHeader}>
-          <div className={styles.logoIcon}>♪</div>
+          <div className={styles.logoIcon}><AppIcon name="music" size={26}/></div>
           <h1 className={styles.title}>Регистрация в Melo</h1>
           <p className={styles.subtitle}>Создайте аккаунт и присоединяйтесь к музыкальному сообществу</p>
         </div>

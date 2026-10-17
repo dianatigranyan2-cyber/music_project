@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { AppIcon } from '../Icons/AppIcon';
 import { usePathname } from 'next/navigation';
 import styles from './Navigation.module.css';
 import {useFriendListening} from '../../context/FriendListeningContext';
@@ -16,11 +17,11 @@ export const Navigation: React.FC = () => {
   const messageBadge = unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : undefined;
 
   const navItems = [
-    { id: 'home', href: '/', label: 'Главная', icon: '🏠' },
-    { id: 'friends', href: '/friends', label: 'Друзья', icon: '👥', badge: friends.length?String(friends.length):undefined },
-    { id: 'playlists', href: '/playlists', label: 'Плейлисты', icon: '🎵' },
-    { id: 'messages', href: '/messages', label: 'Сообщения', icon: '💬', badge: messageBadge },
-    { id: 'profile', href: '/profile', label: 'Профиль', icon: '👤' },
+    { id: 'home', href: '/', label: 'Главная', icon: <AppIcon name="home"/> },
+    { id: 'friends', href: '/friends', label: 'Друзья', icon: <AppIcon name="friends"/>, badge: friends.length?String(friends.length):undefined },
+    { id: 'playlists', href: '/playlists', label: 'Плейлисты', icon: <AppIcon name="music"/> },
+    { id: 'messages', href: '/messages', label: 'Сообщения', icon: <AppIcon name="messages"/>, badge: messageBadge },
+    { id: 'profile', href: '/profile', label: 'Профиль', icon: <AppIcon name="profile"/> },
     { id: 'settings', href: '/settings', label: 'Настройки', icon: '⚙️' },
   ];
 
@@ -30,7 +31,7 @@ export const Navigation: React.FC = () => {
       <aside className={styles.sidebar}>
         <Link href="/" className={styles.logoContainer}>
           <div className={styles.logoIcon}>
-            <span>♪</span>
+            <AppIcon name="music"/>
           </div>
           <span className={styles.logoText}>Melo</span>
         </Link>

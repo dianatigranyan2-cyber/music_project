@@ -1,4 +1,6 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
+import { Avatar } from '../Profile/Avatar';
 
 import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -9,6 +11,13 @@ import {
   formatNotificationTime, notificationActorName, presentNotification,
 } from '../../lib/notifications';
 import styles from './NotificationsBell.module.css';
+
+function NotificationIcon({icon, size = 16}: {icon: string; size?: number}) {
+  if (icon === '❤️') return <AppIcon name="heart-filled" size={size}/>;
+  if (icon === '👋' || icon === '🤝') return <AppIcon name="friends" size={size}/>;
+  if (icon === '🔔') return <AppIcon name="notifications" size={size}/>;
+  return <span aria-hidden="true">{icon}</span>;
+}
 
 function NotificationsInbox({ userId }: { userId: string | null }) {
   const { setSearchQuery } = usePlayer();
@@ -59,7 +68,7 @@ function NotificationsInbox({ userId }: { userId: string | null }) {
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
       >
-        <span aria-hidden="true">🔔</span>
+        <AppIcon name="notifications" size={18}/>
         {unreadCount > 0 && (
           <span className={styles.badge} aria-hidden="true">
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -92,7 +101,7 @@ function NotificationsInbox({ userId }: { userId: string | null }) {
                 <p className={styles.empty} role="status">Загрузка уведомлений…</p>
               ) : !error && notifications.length === 0 ? (
                 <div className={styles.empty}>
-                  <span className={styles.emptyIcon} aria-hidden="true">🔔</span>
+                  <span className={styles.emptyIcon}><AppIcon name="notifications" size={32}/></span>
                   <p>Пока нет уведомлений</p>
                   <small>Здесь появятся лайки историй и новости о друзьях.</small>
                 </div>
@@ -104,15 +113,12 @@ function NotificationsInbox({ userId }: { userId: string | null }) {
                     const content = (
                       <>
                         <span className={styles.avatar}>
-                          {notification.actor?.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={notification.actor.avatar_url} alt="" />
-                          ) : <span aria-hidden="true">{icon}</span>}
+                          <Avatar src={notification.actor?.avatar_url} alt=""/>
                         </span>
                         <span className={styles.copy}>
                           <span><strong>{notificationActorName(notification)}</strong> {text}</span>
                           <time dateTime={notification.created_at}>
-                            {icon} · {formatNotificationTime(notification.created_at)}
+                            <NotificationIcon icon={icon} size={12}/> · {formatNotificationTime(notification.created_at)}
                           </time>
                         </span>
                         {unread && <span className={styles.unreadDot} aria-label="Не прочитано" />}

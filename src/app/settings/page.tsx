@@ -1,4 +1,5 @@
 'use client';
+import { Avatar } from '../../components/Profile/Avatar';
 
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
@@ -140,7 +141,7 @@ function SettingsForm() {
     }
   };
 
-  const currentPreviewAvatar = avatarUrl || '/default-avatar.png';
+  const currentPreviewAvatar = avatarUrl;
 
   const handleLogout = async () => {
     if (loggingOut) return;
@@ -181,8 +182,7 @@ function SettingsForm() {
             <label className={styles.label}>Аватар профиля</label>
             <div className={styles.avatarSection}>
               <div className={styles.avatarPreviewWrapper}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={currentPreviewAvatar} alt="Аватар" className={styles.avatarPreview} />
+                <Avatar src={currentPreviewAvatar} alt="Аватар" className={styles.avatarPreview} />
               </div>
               <div className={styles.avatarUploadControls}>
                 <input

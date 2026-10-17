@@ -121,7 +121,7 @@
 }
 
 .online {
-  background-color: #22c55e;
+  background-color: var(--accent-purple);
 }
 
 .offline {

@@ -1,4 +1,6 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
+import { Avatar } from '../Profile/Avatar';
 
 import { useEffect } from 'react';
 import type { MessageToast } from '../../lib/messageNotifications';
@@ -34,11 +36,8 @@ function MessageToastCard({ toast, onDismiss, onOpen }: {
         aria-label={`Открыть диалог с ${toast.senderName}: ${toast.preview}`}
       >
         <span className={styles.avatar}>
-          {toast.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={toast.avatarUrl} alt="" />
-          ) : Array.from(toast.senderName.trim())[0]?.toLocaleUpperCase('ru-RU') || '?'}
-          <span className={styles.messageIcon} aria-hidden="true">💬</span>
+          <Avatar src={toast.avatarUrl} alt=""/>
+          <span className={styles.messageIcon}><AppIcon name="messages" size={12}/></span>
         </span>
         <span className={styles.copy}>
           <span className={styles.label}>Новое сообщение</span>

@@ -91,7 +91,7 @@
 }
 
 .messageBadge {
-  background-color: #e11d48;
+  background-color: var(--accent-purple);
 }
 
 .mobileMessageBadge {
@@ -106,7 +106,7 @@
   padding: 0 4px;
   border: 2px solid var(--bg-dark);
   border-radius: var(--radius-full);
-  background-color: #e11d48;
+  background-color: var(--accent-purple);
   color: #fff;
   font-size: 9px;
   font-weight: 700;

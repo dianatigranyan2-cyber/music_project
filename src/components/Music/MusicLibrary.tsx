@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePlayer } from '../../context/PlayerContext';
@@ -30,7 +31,7 @@ export function MusicLibrary({ artistId, albumId, compact = false }: { artistId?
   return <section className={styles.container}>
     <header className={styles.heading}><div>{compact ? <h2>{title}</h2> : <h1>{title}</h1>}
       <p>{album ? `${library.artists.find(a => a.id === album.artistId)?.name} · ${album.year}` : artist ? 'Все песни исполнителя в библиотеке Melo' : 'Независимая музыка — слушайте прямо здесь'}</p></div>
-      {compact ? <Link className={styles.button} href="/#music">Вся музыка →</Link> : artistId || albumId ? <Link href="/#music">Библиотека</Link> : <Link className={styles.myMusicButton} href="/playlists"><span className={styles.myMusicIcon} aria-hidden="true">♫</span><span>Моя музыка</span><span className={styles.myMusicArrow} aria-hidden="true">→</span></Link>}
+      {compact ? <Link className={styles.button} href="/#music">Вся музыка →</Link> : artistId || albumId ? <Link href="/#music">Библиотека</Link> : <Link className={styles.myMusicButton} href="/playlists"><span className={styles.myMusicIcon}><AppIcon name="music"/></span><span>Моя музыка</span><span className={styles.myMusicArrow} aria-hidden="true">→</span></Link>}
       {artistId&&<SaveMusicButton id={artistId} kind="artist"/>}{albumId&&<SaveMusicButton id={albumId} kind="album"/>}
     </header>
     {!compact && !albumId && <div className={styles.genres} aria-label="Жанры">
@@ -40,7 +41,7 @@ export function MusicLibrary({ artistId, albumId, compact = false }: { artistId?
       {MUSIC_MOODS.map(m=><Link key={m.id} href={'/music/moods/'+m.id} className={styles.card} style={{background:`linear-gradient(130deg,${m.colors[0]}55,${m.colors[1]}25)`}}><strong>{m.title}</strong><span>{m.description}</span><span>Треков: {moodTracks(m.id,library.tracks).length}</span></Link>)}
     </div></section>}
     {!compact && !artistId && !albumId && visibleArtists.length > 0 && <section><h2>Исполнители</h2><div className={styles.cards}>
-      {visibleArtists.map(a => <Link className={styles.card} key={a.id} href={'/music/artists/' + a.id} onClick={() => setSearchQuery('')}><span className={styles.artistIcon}>♪</span><strong>{a.name}</strong><span>{library.tracks.filter(t => t.artistId === a.id).length} треков</span></Link>)}
+      {visibleArtists.map(a => <Link className={styles.card} key={a.id} href={'/music/artists/' + a.id} onClick={() => setSearchQuery('')}><span className={styles.artistIcon}><AppIcon name="music" size={28}/></span><strong>{a.name}</strong><span>{library.tracks.filter(t => t.artistId === a.id).length} треков</span></Link>)}
     </div></section>}
     {!compact && !albumId && visibleAlbums.length > 0 && <section><h2>Альбомы</h2><div className={styles.cards}>
       {visibleAlbums.map(a => <Link className={styles.card} key={a.id} href={'/music/albums/' + a.id} onClick={() => setSearchQuery('')}><strong>{a.title}</strong><span>{library.artists.find(ar => ar.id === a.artistId)?.name} · {a.year}</span></Link>)}

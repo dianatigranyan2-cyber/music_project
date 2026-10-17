@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Track } from '../../types';
@@ -37,7 +38,7 @@ export function StoryMusic({ track, start, duration, paused, videoTime, onWaitin
     <button type="button" aria-label={blocked ? 'Включить музыку истории' : muted ? 'Включить звук истории' : 'Выключить звук истории'} onClick={async () => {
       if (blocked) { try { await audio.current?.play(); setBlocked(false); } catch { setBlocked(true); } }
       else setMuted(value => !value);
-    }}>{blocked ? '▶ Включить музыку' : muted ? '🔇' : '🔊'} {!compact && `${track.title} — ${track.artist}`}</button>
+    }}>{blocked ? '▶ Включить музыку' : <AppIcon name="volume" size={18} muted={muted}/>} {!compact && `${track.title} — ${track.artist}`}</button>
     {failed && <span role="status"> Музыка сейчас недоступна.</span>}
     <Link href={'/music/credits#track-' + track.id} style={{ display: 'block', fontSize: 10, color: '#d8b4fe' }}>Автор и лицензия</Link>
   </div>;

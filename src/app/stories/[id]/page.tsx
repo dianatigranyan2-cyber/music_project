@@ -1,4 +1,6 @@
 'use client';
+import { Avatar } from '../../../components/Profile/Avatar';
+import { AppIcon } from '../../../components/Icons/AppIcon';
 
 import React, { useState, useEffect, useRef, use, useCallback } from 'react';
 import Link from 'next/link';
@@ -812,7 +814,7 @@ export default function StoryViewerPage({ params }: PageProps) {
 
   const currentGroupStories = userGroups[currentGroupIndex]?.stories || [];
   const userName = profile?.display_name || profile?.username || 'Пользователь';
-  const avatarUrl = profile?.avatar_url || '/default-avatar.png';
+  const avatarUrl = profile?.avatar_url;
   const timeAgo = story?.created_at ? formatTimeAgo(story.created_at) : '';
   const isOwnStory = Boolean(currentUserId && story?.user_id === currentUserId);
 
@@ -844,8 +846,7 @@ export default function StoryViewerPage({ params }: PageProps) {
         {/* Story Top Header */}
         <div className={styles.storyHeader}>
           <div className={styles.userMeta}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={avatarUrl} alt={userName} className={styles.avatar} />
+            <Avatar src={avatarUrl} alt={userName} className={styles.avatar} />
             <div className={styles.userInfo}>
               <span className={styles.username}>{userName}</span>
               {timeAgo && <span className={styles.timeAgo}>{timeAgo}</span>}
@@ -997,7 +998,7 @@ export default function StoryViewerPage({ params }: PageProps) {
                     cursor: 'pointer',
                   }}
                 >
-                  {selectedReaction === '❤️' ? '♥' : '♡'}
+                  <AppIcon name={selectedReaction === '❤️' ? 'heart-filled' : 'heart'} size={26}/>
                 </button>
               </form>
             )}
@@ -1051,12 +1052,11 @@ export default function StoryViewerPage({ params }: PageProps) {
                   <div className={styles.viewersList}>
                     {viewers.map((v) => {
                       const vName = v.profile?.display_name || v.profile?.username || 'Пользователь';
-                      const vAvatar = v.profile?.avatar_url || '/default-avatar.png';
+                      const vAvatar = v.profile?.avatar_url;
                       const vTime = v.viewed_at ? formatTimeAgo(v.viewed_at) : '';
                       return (
                         <div key={v.id} className={styles.viewerRow}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={vAvatar} alt={vName} className={styles.viewerAvatar} />
+                          <Avatar src={vAvatar} alt={vName} className={styles.viewerAvatar} />
                           <div className={styles.viewerMeta}>
                             <div className={styles.viewerNameRow}>
                               <span className={styles.viewerName}>{vName}</span>
@@ -1067,7 +1067,7 @@ export default function StoryViewerPage({ params }: PageProps) {
                                   aria-label="Поставил(а) лайк"
                                   title="Поставил(а) лайк"
                                 >
-                                  ❤️
+                                  <AppIcon name="heart-filled" size={16}/>
                                 </span>
                               )}
                             </div>

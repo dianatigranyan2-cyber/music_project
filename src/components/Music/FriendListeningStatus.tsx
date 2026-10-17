@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
 import {useFriendListening} from '../../context/FriendListeningContext';
 import {useMusicLibrary} from '../../hooks/useMusicLibrary';
 import styles from './FriendListeningStatus.module.css';
@@ -15,5 +16,5 @@ export function ListenWithFriend({friendId}:{friendId:string}){
  const {friends,following,busy,follow,leave}=useFriendListening();const {library}=useMusicLibrary();
  const activity=friends.find(f=>f.id===friendId);const track=activity?.playing?library?.tracks.find(t=>t.id===activity.trackId):null;
  if(!track&&following?.id!==friendId)return null;
- return <div className={styles.inline}>{track&&<span>🎵 {track.title} · {track.artist}</span>}<button disabled={busy||!activity?.canJoin&&following?.id!==friendId} onClick={()=>void(following?.id===friendId?leave():follow(friendId))}>{following?.id===friendId?'Отключиться':activity?.canJoin?'🎧 Слушать вместе':'Подключение отключено'}</button></div>;
+ return <div className={styles.inline}>{track&&<span><AppIcon name="music" size={14}/> {track.title} · {track.artist}</span>}<button disabled={busy||!activity?.canJoin&&following?.id!==friendId} onClick={()=>void(following?.id===friendId?leave():follow(friendId))}>{following?.id===friendId?'Отключиться':activity?.canJoin?'🎧 Слушать вместе':'Подключение отключено'}</button></div>;
 }

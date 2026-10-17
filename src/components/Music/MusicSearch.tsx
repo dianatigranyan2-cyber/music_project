@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
 import {useId,useRef,useState} from 'react';
 import {usePathname,useRouter} from 'next/navigation';
 import {useMusicLibrary} from '../../hooks/useMusicLibrary';
@@ -20,7 +21,7 @@ export function MusicSearch({mobile=false,onClose}:{mobile?:boolean;onClose?:()=
     setOpen(false);setActive(-1);
   };
   return <div className={styles.searchWrapper} ref={wrapper} onBlur={event=>{if(!wrapper.current?.contains(event.relatedTarget as Node|null))setOpen(false);}}>
-    <span className={styles.searchIcon}>🔍</span>
+    <span className={styles.searchIcon}><AppIcon name="search" size={18}/></span>
     <input className={styles.searchInput} type="text" role="combobox" aria-label={friendsSearch?'Поиск друзей':'Поиск музыки'} aria-autocomplete={friendsSearch?'none':'list'} aria-expanded={expanded} aria-controls={expanded?id:undefined} aria-activedescendant={expanded&&active>=0&&active<suggestions.length?`${id}-${active}`:undefined}
       placeholder={friendsSearch?'Поиск друзей...':mobile?'Поиск треков, исполнителей...':'Поиск треков, исполнителей и друзей...'} value={searchQuery} autoComplete="off" autoFocus={mobile}
       onFocus={()=>setOpen(true)} onChange={e=>{setSearchQuery(e.target.value);setOpen(true);setActive(-1);}}
@@ -33,7 +34,7 @@ export function MusicSearch({mobile=false,onClose}:{mobile?:boolean;onClose?:()=
     {(searchQuery||mobile)&&<button className={styles.clearBtn} aria-label={mobile?'Закрыть поиск':'Очистить поиск'} onClick={()=>{setSearchQuery('');setOpen(false);onClose?.();}}>✕</button>}
     {expanded&&<div className={styles.suggestions}>
       <div id={id} role="listbox" aria-label="Подсказки поиска">
-        {suggestions.map((s,index)=><button key={s.kind+s.id} id={`${id}-${index}`} role="option" aria-selected={active===index} tabIndex={-1} onMouseDown={e=>e.preventDefault()} onClick={()=>choose(index)}><span aria-hidden="true">{s.kind==='track'?'▶':s.kind==='artist'?'♪':'▣'}</span><span>{s.label}<small>{s.detail}{s.kind==='track'?' · Песня':''}</small></span></button>)}
+        {suggestions.map((s,index)=><button key={s.kind+s.id} id={`${id}-${index}`} role="option" aria-selected={active===index} tabIndex={-1} onMouseDown={e=>e.preventDefault()} onClick={()=>choose(index)}><span aria-hidden="true">{s.kind==='track'?'▶':s.kind==='artist'?<AppIcon name="music" size={16}/>:"▣"}</span><span>{s.label}<small>{s.detail}{s.kind==='track'?' · Песня':''}</small></span></button>)}
       </div>
       {!suggestions.length&&<p>{library?'Ничего не найдено в каталоге Melo.':'Загружаем каталог…'}</p>}
       <button className={styles.allResults} onMouseDown={e=>e.preventDefault()} onClick={()=>{setOpen(false);router.push('/#music');}}>Все результаты →</button>

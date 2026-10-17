@@ -20,7 +20,7 @@ export default function Home() {
   const router = useRouter();
   const {searchQuery}=usePlayer();
   const {friends:activities,listeners}=useFriendListening();const {library}=useMusicLibrary();const {getOnlineStatus}=useSocialPresence();
-  const realFriends=activities.map(activity=>({...activity,listeningWithMe:listeners.some(listener=>listener.id===activity.id),avatarUrl:activity.avatarUrl||'/default-avatar.png',isOnline:getOnlineStatus(activity.id)==='online',currentTrack:listeningTrack(activity,library?.tracks??[])}));
+  const realFriends=activities.map(activity=>({...activity,listeningWithMe:listeners.some(listener=>listener.id===activity.id),avatarUrl:activity.avatarUrl||'/icons/profile.png',isOnline:getOnlineStatus(activity.id)==='online',currentTrack:listeningTrack(activity,library?.tracks??[])}));
   const { user: currentUser, profile: currentProfile } = useAuth();
   const [supabase] = useState(() => createClient());
   const [stories, setStories] = useState<Story[]>([]);
@@ -128,8 +128,8 @@ export default function Home() {
           : (profile?.display_name || profile?.username || 'Пользователь');
 
         const userAvatar = isMe
-          ? (currentProfile?.avatar_url || profile?.avatar_url || '/default-avatar.png')
-          : (profile?.avatar_url || '/default-avatar.png');
+          ? (currentProfile?.avatar_url || profile?.avatar_url || '/icons/profile.png')
+          : (profile?.avatar_url || '/icons/profile.png');
 
         // hasUnseen is true if at least ONE active story for this user is NOT in viewedStoryIds
         const hasUnseen = isMe
@@ -161,8 +161,8 @@ export default function Home() {
             id: 'current-user-add',
             userId: currentUser.id,
             userName: currentProfile?.display_name || currentProfile?.username || 'Ваша история',
-            userAvatar: currentProfile?.avatar_url || '/default-avatar.png',
-            avatarUrl: currentProfile?.avatar_url || '/default-avatar.png',
+            userAvatar: currentProfile?.avatar_url || '/icons/profile.png',
+            avatarUrl: currentProfile?.avatar_url || '/icons/profile.png',
             hasUnseen: false,
             isCurrentUser: true,
           });

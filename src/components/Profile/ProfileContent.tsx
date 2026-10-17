@@ -1,6 +1,7 @@
 'use client';
 
 import {BlockUser} from './BlockUser';
+import {Avatar} from './Avatar';
 import { useState } from 'react';
 import Link from 'next/link';
 import type { Profile } from '../../context/AuthContext';
@@ -34,8 +35,7 @@ export function ProfileContent({ profile, music, friendCount, loading, error, re
   return <div className={styles.container}>
     <div className={styles.profileHero}>
       <div className={styles.avatarWrapper}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={profile.avatar_url || '/default-avatar.png'} alt={displayName} className={styles.avatar} onError={({ currentTarget }) => { if (!currentTarget.src.endsWith('/default-avatar.png')) currentTarget.src = '/default-avatar.png'; }}/>
+        <Avatar src={profile.avatar_url} alt={displayName} className={styles.avatar}/>
       </div>
       <div className={styles.profileMeta}>
         <div className={styles.headerTop}><div><h1 className={styles.name}>{displayName}</h1><span className={styles.handle}>{profile.username ? '@' + profile.username : ''}</span></div>{isOwner && <div className={styles.profileActions}><Link href="/settings#profile-details" className={styles.editBtn}>✏️ Редактировать профиль</Link><Link href="/settings" className={styles.editBtn}>⚙️ Настройки</Link></div>}</div>

@@ -34,12 +34,9 @@ c:/projects/music_project/
 ├── package.json                 # Список зависимостей и скрипты запуска
 ├── package-lock.json            # Зафиксированные версии зависимостей npm
 ├── tsconfig.json                # Конфигурация компилятора TypeScript
-├── public/                      # Статические ресурсы (SVG иконки, фавиконки)
-│   ├── file.svg
-│   ├── globe.svg
-│   ├── next.svg
-│   ├── vercel.svg
-│   └── window.svg
+├── public/                      # Статические ресурсы
+│   ├── icons/                   # Иконки Дианы: меню, поиск, уведомления, плеер и лайки
+│   └── music-placeholder.svg    # Обложка для треков без изображения
 ├── docs/                        # Полная проектная документация на русском языке
 │   ├── README.md                # Главное оглавление документации
 │   ├── 01_architecture_and_structure.md

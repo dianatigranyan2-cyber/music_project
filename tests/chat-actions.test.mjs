@@ -5,6 +5,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import ts from 'typescript';
+import {AppIcon} from './helpers/app-icon.mjs';
 const require=createRequire(import.meta.url);
 let open=false;
 const react={...React,useState:()=>[open,value=>{open=typeof value==='function'?value(open):value;}],useEffect(){},useId:()=>':actions:',useRef:()=>({current:null})};
@@ -13,7 +14,7 @@ const source=await readFile(new URL('../src/components/Messages/ChatActions.tsx'
 const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
 const compiledModule={exports:{}};
 function BlockUser({placement}){return React.createElement('button',{'data-placement':placement},'Заблокировать');}
-new Function('require','module','exports',code)(name=>name==='react'?react:name.endsWith('.css')?styles:name.endsWith('BlockUser')?{BlockUser}:require(name),compiledModule,compiledModule.exports);
+new Function('require','module','exports',code)(name=>name==='react'?react:name.endsWith('.css')?styles:name.endsWith('AppIcon')?{AppIcon}:name.endsWith('BlockUser')?{BlockUser}:require(name),compiledModule,compiledModule.exports);
 const {ChatActions}=compiledModule.exports;
 const props={peerId:'friend',name:'Друг',musicDisabled:false,onMusic(){}};
 test('chat actions are hidden until the horizontal dots button opens them',()=>{

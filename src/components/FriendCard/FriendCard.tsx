@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import {Avatar} from '../Profile/Avatar';
 import {useFriendListening} from '../../context/FriendListeningContext';
 import styles from './FriendCard.module.css';
 import { Friend } from '../../types';
@@ -17,8 +18,7 @@ export const FriendCard: React.FC<FriendCardProps> = ({ friend }) => {
       {/* Top Bar: Avatar & Status */}
       <div className={styles.header}>
         <div className={styles.avatarWrapper}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={friend.avatarUrl} alt={friend.name} className={styles.avatar} />
+          <Avatar src={friend.avatarUrl} alt={friend.name} className={styles.avatar} />
           <span className={`${styles.onlineDot} ${friend.isOnline ? styles.online : styles.offline}`} />
         </div>
 

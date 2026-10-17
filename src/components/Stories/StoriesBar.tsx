@@ -1,4 +1,5 @@
 'use client';
+import {Avatar} from '../Profile/Avatar';
 
 import React, { useRef, useState } from 'react';
 import styles from './StoriesBar.module.css';
@@ -65,8 +66,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onSelectStory, 
                   : ''
                 }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Avatar
                 src={story.userAvatar}
                 alt={story.userName}
                 className={styles.avatar}

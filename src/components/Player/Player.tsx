@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { AppIcon } from '../Icons/AppIcon';
 import Link from 'next/link';
 import { MusicQueue } from '../Music/MusicQueue';
 import { FavoriteButton, PlaylistButton } from '../Music/TrackActions';
@@ -109,7 +110,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
                 className={`${styles.smallBtn} ${isShuffle ? styles.activeMode : ''}`}
                 onClick={toggleShuffle} disabled={!canShuffle} aria-label="Случайный порядок" aria-pressed={isShuffle}
               >
-                🔀
+                <AppIcon name="shuffle"/>
               </button>
               <button className={styles.stepBtn} onClick={onPrevTrack} disabled={!playable || !!listeningControl} aria-label="Предыдущий трек">
                 ⏮
@@ -133,14 +134,14 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
                 title="Повтор: выключен → вся очередь → один трек"
                 aria-pressed={isRepeat}
               >
-                {repeatMode==='one'?'🔂':'🔁'}
+                <span className={styles.repeatIcon}><AppIcon name="repeat"/>{repeatMode==='one'&&<span className={styles.repeatOne}>1</span>}</span>
               </button>
             </div>
 
             {/* Volume Control */}
             <div className={styles.expandedVolume}>
-              <button className={styles.volumeBtn} onClick={toggleMuted}>
-                {isMuted || volume === 0 ? '🔇' : '🔊'}
+              <button className={styles.volumeBtn} onClick={toggleMuted} aria-label={isMuted || volume === 0 ? 'Включить звук' : 'Выключить звук'} aria-pressed={isMuted || volume === 0}>
+                <AppIcon name="volume" muted={isMuted || volume === 0}/>
               </button>
               <input
                 type="range"
@@ -191,7 +192,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
               className={`${styles.smallBtn} ${isShuffle ? styles.activeMode : ''}`}
               onClick={toggleShuffle} disabled={!canShuffle} aria-label="Случайный порядок" aria-pressed={isShuffle}
             >
-              🔀
+              <AppIcon name="shuffle" size={18}/>
             </button>
             <button className={styles.stepBtn} onClick={onPrevTrack} disabled={!playable || !!listeningControl} aria-label="Предыдущий трек">
               ⏮
@@ -215,7 +216,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
                 title="Повтор: выключен → вся очередь → один трек"
                 aria-pressed={isRepeat}
             >
-                {repeatMode==='one'?'🔂':'🔁'}
+                <span className={styles.repeatIcon}><AppIcon name="repeat" size={18}/>{repeatMode==='one'&&<span className={styles.repeatOne}>1</span>}</span>
             </button>
           </div>
 
@@ -268,8 +269,8 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
         {/* Right: Volume (Desktop) */}
         <div className={styles.volumeSection}>
           <button className={styles.smallBtn} aria-label="Открыть очередь" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}>☷</button>
-          <button className={styles.volumeBtn} onClick={toggleMuted}>
-            {isMuted || volume === 0 ? '🔇' : volume < 50 ? '🔉' : '🔊'}
+          <button className={styles.volumeBtn} onClick={toggleMuted} aria-label={isMuted || volume === 0 ? 'Включить звук' : 'Выключить звук'} aria-pressed={isMuted || volume === 0}>
+            <AppIcon name="volume" size={18} muted={isMuted || volume === 0}/>
           </button>
           <input
             type="range"

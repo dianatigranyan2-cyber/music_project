@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -147,7 +148,7 @@ export function StoryEditor({ story, initialFile, onClose, onSaved }: { story?: 
         <div className={styles.stageArea}>
           {!previewMode && <div className={styles.tools} role="toolbar" aria-label="Инструменты истории">
             <button type="button" disabled={busy} aria-label="Добавить текст" aria-pressed={panel === 'text'} onClick={() => { if (selected?.kind !== 'text') addLayer('text','Твой текст'); setPanel('text'); }}><b>Aa</b><small>Текст</small></button>
-            <button type="button" disabled={busy} aria-label="Добавить музыку" aria-pressed={panel === 'music'} onClick={() => setPanel('music')}><b>♫</b><small>Музыка</small></button>
+            <button type="button" disabled={busy} aria-label="Добавить музыку" aria-pressed={panel === 'music'} onClick={() => setPanel('music')}><AppIcon name="music" size={22}/><small>Музыка</small></button>
             <button type="button" disabled={busy} aria-label="Добавить стикер" aria-pressed={panel === 'stickers'} onClick={() => setPanel('stickers')}><b>☺</b><small>Стикеры</small></button>
             <button type="button" disabled={busy} aria-label="Кадрировать фото или видео" aria-pressed={panel === 'crop'} onClick={() => { setSelectedId(null); setPanel('crop'); }}><b>⌗</b><small>Кадр</small></button>
             <button type="button" disabled={busy} aria-label="Выбрать фильтр" aria-pressed={panel === 'filters'} onClick={() => setPanel('filters')}><b>◐</b><small>Фильтр</small></button>
@@ -167,7 +168,7 @@ export function StoryEditor({ story, initialFile, onClose, onSaved }: { story?: 
               <label>Поиск музыки<input placeholder="Название песни или исполнитель" value={query} onChange={event => setQuery(event.target.value)}/></label>
               {libraryError && <p role="status">{libraryError} <button type="button" onClick={retry}>Повторить</button></p>}
               {!library && !libraryError && <p role="status">Загружаем музыку…</p>}
-              {library && <div className={styles.results}>{filterMusic(library.tracks,query).slice(0,20).map(item => <button type="button" key={item.id} aria-pressed={item.id === trackId} onClick={() => chooseTrack(item.id,item.duration)}><span className={styles.trackNote}>♫</span><span>{item.title}<small>{item.artist}</small></span></button>)}{!filterMusic(library.tracks,query).length && <p>Ничего не найдено. Попробуйте другое название.</p>}</div>}
+              {library && <div className={styles.results}>{filterMusic(library.tracks,query).slice(0,20).map(item => <button type="button" key={item.id} aria-pressed={item.id === trackId} onClick={() => chooseTrack(item.id,item.duration)}><span className={styles.trackNote}><AppIcon name="music"/></span><span>{item.title}<small>{item.artist}</small></span></button>)}{!filterMusic(library.tracks,query).length && <p>Ничего не найдено. Попробуйте другое название.</p>}</div>}
               {trackId && <div className={styles.fragment}><strong>{track ? track.title + ' — ' + track.artist : 'Трек недоступен'}</strong>{track && <><label>Начало: {start} сек.<input type="range" min={0} max={Math.max(0,track.duration-duration)} step={1} value={start} onChange={event => { stopPreview(); setStart(Number(event.target.value)); }}/></label><label>Длительность: {duration} сек.<input type="range" min={1} max={Math.min(15,track.duration)} step={1} value={duration} onChange={event => { stopPreview(); const next=Number(event.target.value); setDuration(next); setStart(Math.min(start,track.duration-next)); }}/></label><button type="button" className={styles.secondary} onClick={() => void playPreview()}>{playing ? 'Ⅱ Пауза' : '▶ Прослушать фрагмент'}</button></>}
                 <button type="button" className={styles.secondary} onClick={() => { const sticker=presentation.layers.find(layer=>layer.kind==='music'); if(sticker) removeLayer(sticker.id); }}>Убрать музыку</button>
                 {selected?.kind === 'music' && <LayerControls layer={selected} onChange={change => patchLayer(selected.id,change)}/>}<small>До 15 секунд. Исходный звук видео при добавлении музыки выключается.</small>

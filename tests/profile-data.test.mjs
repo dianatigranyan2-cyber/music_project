@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ts from 'typescript';
+import {Avatar} from './helpers/avatar.mjs';
 
 const require = createRequire(import.meta.url);
 const css = await readFile(new URL('../src/app/profile/page.module.css', import.meta.url), 'utf8');
@@ -26,6 +27,7 @@ const reset = () => {
 let ProfileContent;
 function TestLink({ children, ...props }) { return React.createElement('a', props, children); }
 const dependencies = name => {
+  if (name.endsWith('Avatar')) return {Avatar};
   if (name === 'next/link') return TestLink;
   if (name.endsWith('.css')) return styles;
   if (name.endsWith('BlockUser')) return { BlockUser: () => null };

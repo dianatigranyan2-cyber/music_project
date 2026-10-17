@@ -121,6 +121,9 @@
 }
 
 .smallBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
   color: var(--text-dim);
 }
@@ -131,6 +134,21 @@
 
 .activeMode {
   color: var(--accent-purple-light) !important;
+}
+
+.repeatIcon {
+  position: relative;
+  display: inline-flex;
+}
+
+.repeatOne {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 /* Seek Bar */
@@ -179,6 +197,9 @@
 }
 
 .volumeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 15px;
   color: var(--text-muted);
 }
@@ -218,7 +239,7 @@
   width: 5px;
   height: 5px;
   border-radius: var(--radius-full);
-  background-color: #22c55e;
+  background-color: var(--accent-purple);
 }
 
 .liveText {

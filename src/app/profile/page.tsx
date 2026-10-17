@@ -1,4 +1,5 @@
 'use client';
+import { Avatar } from '../../components/Profile/Avatar';
 
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
@@ -12,7 +13,7 @@ export default function ProfilePage() {
   const { data, loading, error, refresh, busy, mutate } = usePersonalMusic();
   const { result: friendCount, retry: retryFriends } = useProfileFriendCount(user?.id);
   if (authLoading) return <p role="status">Загружаем профиль…</p>;
-  if (!user) return <section className={styles.container}><h1 className={styles.name}>Ваш профиль</h1><p>Войдите, чтобы увидеть свой профиль и музыку.</p><Link href="/login" className={styles.editBtn}>Войти</Link></section>;
+  if (!user) return <section className={styles.container}><div className={styles.avatarWrapper}><Avatar alt="Фото профиля" className={styles.avatar}/></div><h1 className={styles.name}>Ваш профиль</h1><p>Войдите, чтобы увидеть свой профиль и музыку.</p><Link href="/login" className={styles.editBtn}>Войти</Link></section>;
   const ownProfile = profile?.id === user.id ? profile : { id: user.id, username: user.user_metadata?.username || '', display_name: 'Пользователь' };
   const music = data?.userId === user.id ? data : null;
   return <ProfileContent key={user.id} profile={ownProfile} music={music} friendCount={friendCount?.count ?? null} loading={loading || !friendCount}

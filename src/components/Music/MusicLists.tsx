@@ -10,7 +10,7 @@ export function MusicImage({ src }: { src: string }) {
   return <img className={styles.cover} src={src} alt="" onError={({ currentTarget }) => { if (!currentTarget.src.endsWith('/music-placeholder.svg')) currentTarget.src = '/music-placeholder.svg'; }} />;
 }
 export function MusicTracks({ tracks, playbackCollection=tracks }: { tracks: Track[]; playbackCollection?:Track[] }) {
-  const { listeningControl, playTrack, currentTrack, isPlaying, togglePlayback, addToQueue, setSearchQuery } = usePlayer();
+  const { listeningControl, playTrack, currentTrack, isPlaying, togglePlayback, setSearchQuery } = usePlayer();
   return <div className={styles.list}>
     {tracks.map(track => <article className={`${styles.row} ${currentTrack.id === track.id ? styles.active : ''}`} key={track.id}>
       <button className={styles.trackButton} aria-label={`Слушать: ${track.title}`} aria-pressed={currentTrack.id === track.id && isPlaying} disabled={!!listeningControl&&currentTrack.id!==track.id}
@@ -22,7 +22,7 @@ export function MusicTracks({ tracks, playbackCollection=tracks }: { tracks: Tra
         {track.albumId && <Link href={'/music/albums/' + track.albumId} onClick={() => setSearchQuery('')}>{track.album}</Link>}
       </div>
       <span className={styles.duration}>{Math.floor(track.duration / 60)}:{String(track.duration % 60).padStart(2, '0')}</span>
-      <div className={styles.trackActions}><button className={styles.queueButton} aria-label={`В очередь: ${track.title}`} title="Добавить в очередь" disabled={!!listeningControl} onClick={() => addToQueue(track)}>＋</button><FavoriteButton track={track}/><PlaylistButton track={track}/></div>
+      <div className={styles.trackActions}><PlaylistButton track={track}/><FavoriteButton track={track}/></div>
     </article>)}
   </div>;
 }

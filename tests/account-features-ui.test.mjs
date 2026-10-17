@@ -5,6 +5,7 @@ import {createRequire} from 'node:module';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import ts from 'typescript';
+import {AppIcon} from './helpers/app-icon.mjs';
 import {passwordProblem} from '../src/lib/passwords.ts';
 import {authErrorMessage} from '../src/lib/authErrors.ts';
 import {parseMusicMessage,musicMessageContent} from '../src/lib/musicMessages.ts';
@@ -15,6 +16,7 @@ async function load(path){
  const code=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
  const compiledModule={exports:{}};
  const dependencies=name=>{
+  if(name.endsWith('AppIcon'))return {AppIcon};
   if(name.endsWith('.css'))return {__esModule:true,default:new Proxy({},{get:(_,key)=>String(key)})};
   if(name==='next/link')return function TestLink({children,...props}){return React.createElement('a',props,children);};
   if(name==='next/navigation')return {useRouter:()=>({push(){}})};

@@ -35,7 +35,8 @@
   padding: 0;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   background-color: var(--bg-dark);
@@ -83,18 +84,24 @@ input {
 
 /* Animations */
 @keyframes pulseGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
   }
+
   50% {
     box-shadow: 0 0 25px rgba(168, 85, 247, 0.6);
   }
 }
 
 @keyframes waveBar {
-  0%, 100% {
+
+  0%,
+  100% {
     height: 4px;
   }
+
   50% {
     height: 16px;
   }

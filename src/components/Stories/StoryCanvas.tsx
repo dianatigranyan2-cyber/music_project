@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
 
 import { useRef, type ReactNode, type PointerEvent } from 'react';
 import { clamp, STORY_FILTERS, type StoryLayer, type StoryPresentation } from '../../lib/storyPresentation';
@@ -38,7 +39,7 @@ export function StoryCanvas({ presentation, children, music, editable = false, c
     </div>
     {presentation.layers.map(layer => {
       if (layer.kind === 'music' && !music) return null;
-      const content = layer.kind === 'music' ? <span className={styles.music}><span className={styles.note}>♫</span><span><strong>{music?.title}</strong><small>{music?.artist}</small></span></span> : layer.text;
+      const content = layer.kind === 'music' ? <span className={styles.music}><span className={styles.note}><AppIcon name="music" size="1em"/></span><span><strong>{music?.title}</strong><small>{music?.artist}</small></span></span> : layer.text;
       const style: React.CSSProperties = { left: layer.x + '%', top: layer.y + '%', fontSize: layer.size + 'cqw', color: layer.color, transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`, fontFamily: layer.font === 'serif' ? 'Georgia, serif' : layer.font === 'mono' ? 'monospace' : 'inherit' };
       const className = `${styles.layer} ${styles[layer.background]} ${layer.kind === 'sticker' ? styles.sticker : ''} ${editable && selectedId === layer.id ? styles.selected : ''}`;
       return editable ? <button key={layer.id} type="button" className={className} style={style} aria-label={layer.kind === 'music' ? 'Музыкальная наклейка' : layer.kind === 'sticker' ? 'Стикер ' + layer.text : 'Текст: ' + layer.text} aria-pressed={selectedId === layer.id} onClick={event => { event.stopPropagation(); if (didDrag.current) { didDrag.current = false; return; } onSelect?.(layer.id); onEdit?.(layer.id); }} onFocus={() => onSelect?.(layer.id)} onPointerDown={event => startDrag(event, layer)} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag} onLostPointerCapture={finishDrag} onKeyDown={event => {

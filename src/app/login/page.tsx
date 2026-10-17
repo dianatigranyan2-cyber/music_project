@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../../components/Icons/AppIcon';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -51,7 +52,7 @@ export default function LoginPage() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.brandHeader}>
-          <div className={styles.logoIcon}>♪</div>
+          <div className={styles.logoIcon}><AppIcon name="music" size={26}/></div>
           <h1 className={styles.title}>Вход в Melo</h1>
           <p className={styles.subtitle}>Слушайте музыку и делитесь эмоциями с друзьями</p>
         </div>

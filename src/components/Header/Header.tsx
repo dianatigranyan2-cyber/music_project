@@ -1,4 +1,6 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
+import { Avatar } from '../Profile/Avatar';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -33,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) =
   const ownProfile = profile?.id === user?.id ? profile : null;
   const displayName = ownProfile?.display_name || ownProfile?.username || user?.user_metadata?.username || 'Пользователь';
   const displayHandle = ownProfile?.username ? `@${ownProfile.username}` : '';
-  const avatarUrl = ownProfile?.avatar_url || '/default-avatar.png';
+  const avatarUrl = ownProfile?.avatar_url;
 
   return (
     <header className={styles.header}>
@@ -41,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) =
       <div className={styles.topRow}>
         {/* Mobile Logo Branding */}
         <div className={styles.mobileBrand}>
-          <span className={styles.mobileLogoIcon}>♪</span>
+          <span className={styles.mobileLogoIcon}><AppIcon name="music" size={18}/></span>
           <span className={styles.mobileLogoText}>Melo</span>
         </div>
 
@@ -59,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) =
             title="Поиск"
             aria-label="Поиск"
           >
-            <span>{isMobileSearchOpen ? '✕' : '🔍'}</span>
+            <span>{isMobileSearchOpen ? '✕' : <AppIcon name="search" size={18}/>}</span>
           </button>}
 
           <NotificationsBell />
@@ -68,8 +70,7 @@ export const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) =
           {!loading && user ? (
             <div className={styles.authProfileWrapper}>
               <Link href="/profile" className={styles.profileCard}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={avatarUrl} alt={displayName} className={styles.avatar} />
+                <Avatar src={avatarUrl} alt={displayName} className={styles.avatar} />
                 <div className={styles.userInfo}>
                   <span className={styles.userName}>{displayName}</span>
                   <span className={styles.userHandle}>{displayHandle}</span>

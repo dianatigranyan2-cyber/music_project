@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ts from 'typescript';
+import {AppIcon} from './helpers/app-icon.mjs';
 
 const require = createRequire(import.meta.url);
 const source = await readFile(new URL('../src/components/Navigation/Navigation.tsx', import.meta.url), 'utf8');
@@ -20,6 +21,7 @@ const compiled = ts.transpileModule(source, { compilerOptions: {
   module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true,
 } }).outputText;
 const dependencies = (name) => {
+  if (name.endsWith('AppIcon')) return {AppIcon};
   if (name === 'next/link') return TestLink;
   if (name === 'next/navigation') return { usePathname: () => '/' };
   if (name.endsWith('Navigation.module.css')) return styles;
@@ -39,7 +41,7 @@ const render = (count) => {
 
 test('unread badge belongs to the existing white message icon in the bottom menu', () => {
   const html = render(3);
-  assert.match(html, /class="mobileIcon">💬<span class="mobileMessageBadge"[^>]*>3<\/span>/);
+  assert.match(html, /class="mobileIcon"><i[^>]*data-icon="messages".*?<span class="mobileMessageBadge"[^>]*>3<\/span>/);
   assert.match(html, /aria-label="Сообщения: 3 непрочитанных"/);
   assert.doesNotMatch(html, /<button/);
 });

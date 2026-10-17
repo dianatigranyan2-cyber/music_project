@@ -1,4 +1,6 @@
 'use client';
+import { Avatar } from '../../components/Profile/Avatar';
+import { AppIcon } from '../../components/Icons/AppIcon';
 
 import {useBlocking} from '../../context/BlockingContext';
 import {BlockUser} from '../../components/Profile/BlockUser';
@@ -6,7 +8,7 @@ import React, { Suspense, useCallback, useState, useEffect, useRef } from 'react
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
-import { CURRENT_USER } from '../../data/mockData';
+
 import { usePlayer } from '../../context/PlayerContext';
 import { useAuth } from '../../context/AuthContext';
 import { createClient } from '../../lib/supabase/client';
@@ -606,13 +608,12 @@ function FriendsPageContent() {
                     friend.display_name || friend.username;
 
                   const friendAvatar =
-                    friend.avatar_url || CURRENT_USER.avatarUrl;
+                    friend.avatar_url;
 
                   return (
                     <div key={friend.id} className={styles.friendRow}>
                       <div className={styles.avatarWrapper}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Avatar
                           src={friendAvatar}
                           alt={friendName}
                           className={styles.avatar}
@@ -642,7 +643,7 @@ function FriendsPageContent() {
                           href={`/profile/${friend.username}`}
                           className={styles.profileLinkBtn}
                         >
-                          👤 Профиль
+                          <AppIcon name="profile" size={14}/> Профиль
                         </Link>
 
                         <Link
@@ -652,7 +653,7 @@ function FriendsPageContent() {
                           aria-label={`Написать ${friendName}`}
                           onClick={() => setSelectedChatId(friend.id)}
                         >
-                          💬
+                          <AppIcon name="messages" size={16}/>
                         </Link>
 
                         {/* ⋯ More menu */}
@@ -707,13 +708,12 @@ function FriendsPageContent() {
                       const receiverName =
                         req.receiver?.display_name || req.receiver?.username || 'Пользователь';
                       const receiverAvatar =
-                        req.receiver?.avatar_url || CURRENT_USER.avatarUrl;
+                        req.receiver?.avatar_url;
 
                       return (
                         <div key={req.id} className={styles.pendingCardRow}>
                           <div className={styles.avatarWrapper}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            <Avatar
                               src={receiverAvatar}
                               alt={receiverName}
                               className={styles.avatar}
@@ -741,7 +741,7 @@ function FriendsPageContent() {
                                 href={`/profile/${req.receiver.username}`}
                                 className={styles.profileLinkBtn}
                               >
-                                👤 Профиль
+                                <AppIcon name="profile" size={14}/> Профиль
                               </Link>
                             )}
 
@@ -776,12 +776,11 @@ function FriendsPageContent() {
                 req.sender.display_name || req.sender.username;
 
               const senderAvatar =
-                req.sender.avatar_url || CURRENT_USER.avatarUrl;
+                req.sender.avatar_url;
 
               return (
                 <div key={req.id} className={styles.requestCard}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Avatar
                     src={senderAvatar}
                     alt={senderName}
                     className={styles.avatar}
@@ -827,7 +826,7 @@ function FriendsPageContent() {
       {activeTab === 'search' && (
         <div className={styles.searchResultsList}>
           <div className={styles.searchBarRow}>
-            <span style={{ fontSize: '16px' }}>🔍</span>
+            <AppIcon name="search" size={16}/>
             <input
               type="text"
               placeholder="Введите никнейм или имя для поиска..."
@@ -848,7 +847,7 @@ function FriendsPageContent() {
 
           {isSearching && (
             <div className={styles.emptyState}>
-              <p>🔍 Поиск пользователей в Melo...</p>
+              <p><AppIcon name="search" size={16}/> Поиск пользователей в Melo...</p>
             </div>
           )}
 
@@ -867,7 +866,7 @@ function FriendsPageContent() {
           {!isSearching &&
             searchResults.map((userResult) => {
               const displayName = userResult.display_name || userResult.username;
-              const avatar = userResult.avatar_url || CURRENT_USER.avatarUrl;
+              const avatar = userResult.avatar_url;
 
               const isFriend = friends.some(
                 (friend) => friend.id === userResult.id
@@ -876,8 +875,7 @@ function FriendsPageContent() {
               return (
                 <div key={userResult.id} className={styles.friendRow}>
                   <div className={styles.avatarWrapper}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={avatar} alt={displayName} className={styles.avatar} />
+                    <Avatar src={avatar} alt={displayName} className={styles.avatar} />
                   </div>
 
                   <div className={styles.friendInfo}>
@@ -892,7 +890,7 @@ function FriendsPageContent() {
 
                   <div className={styles.actions}>
                     <Link href={`/profile/${userResult.username}`} className={styles.profileLinkBtn}>
-                      👤 Профиль
+                      <AppIcon name="profile" size={14}/> Профиль
                     </Link>
                     <button
                       className={styles.acceptBtn}

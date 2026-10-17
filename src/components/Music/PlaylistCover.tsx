@@ -1,4 +1,5 @@
 'use client';
+import {AppIcon} from '../Icons/AppIcon';
 import type {Track} from '../../types';
 import {useState} from 'react';
 import {coverHue} from '../../lib/musicFeatures';
@@ -11,7 +12,7 @@ export function PlaylistCover({tracks,src,title}:{tracks:Track[];src?:string|nul
       {(tracks.length?tracks.slice(0,4):[null]).map((t,i)=><span key={t?.id??i} style={{background:`linear-gradient(140deg,hsl(${coverHue(t?.id??title)} 56% 38%),hsl(${(coverHue(t?.id??title)+55)%360} 55% 22%))`}}>
         {t&&t.coverUrl&&!t.coverUrl.endsWith('/music-placeholder.svg')?
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={t.coverUrl} alt=""/>:<span aria-hidden="true">{t?.title.slice(0,1)??'♫'}</span>}
+          <img src={t.coverUrl} alt=""/>:<span aria-hidden="true">{t?.title.slice(0,1)??<AppIcon name="music" size="1em"/>}</span>}
       </span>)}
     </span>}
   </span>;

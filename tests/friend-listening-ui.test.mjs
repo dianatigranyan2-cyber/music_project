@@ -5,15 +5,16 @@ import {createRequire} from 'node:module';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import ts from 'typescript';
+import {Avatar} from './helpers/avatar.mjs';
 const css=await readFile(new URL('../src/components/FriendCard/FriendCard.module.css',import.meta.url),'utf8');
 const styles=Object.fromEntries([...css.matchAll(/\.([a-zA-Z][\w-]*)/g)].map(m=>[m[1],m[1]]));
 const require=createRequire(import.meta.url);let following=null;let canJoin=true;let listeners=[];const calls=[];
 const state=()=>({following,listeners,friends:[{id:'friend',canJoin}],busy:false,follow:id=>calls.push(['follow',id]),leave:()=>calls.push(['leave'])});
 async function load(path){
- const source=await readFile(new URL(path,import.meta.url),'utf8');const module={exports:{}};
+ const source=await readFile(new URL(path,import.meta.url),'utf8');const compiledModule={exports:{}};
  const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
- new Function('require','module','exports',compiled)(name=>name.endsWith('FriendListeningContext')?{useFriendListening:state}:name.endsWith('.css')?styles:require(name),module,module.exports);
- return module.exports;
+ new Function('require','module','exports',compiled)(name=>name.endsWith('FriendListeningContext')?{useFriendListening:state}:name.endsWith('Avatar')?{Avatar}:name.endsWith('.css')?styles:require(name),compiledModule,compiledModule.exports);
+ return compiledModule.exports;
 }
 const {FriendCard}=await load('../src/components/FriendCard/FriendCard.tsx');
 const friend={id:'friend',name:'Друг',username:'friend',avatarUrl:'/default-avatar.png',isOnline:true,currentTrack:{id:'song',title:'Песня',artist:'Исполнитель',coverUrl:'/music-placeholder.svg'}};
