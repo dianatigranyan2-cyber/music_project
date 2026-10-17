@@ -2,19 +2,21 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import styles from './Header.module.css';
-import { UserProfile } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { NotificationsBell } from '../Notifications/NotificationsBell';
+import {MusicSearch} from '../Music/MusicSearch';
 
 interface HeaderProps {
-  fallbackUser: UserProfile;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ fallbackUser, searchQuery, setSearchQuery }) => {
-  const { user, profile, signOut, loading } = useAuth();
+export const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
+  const pathname = usePathname();
+  const showSearch = !['/playlists', '/music/playlists', '/messages', '/profile'].some(path => pathname === path || pathname.startsWith(path + '/'));
+  const { user, profile, loading } = useAuth();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   const toggleMobileSearch = () => {
@@ -28,9 +30,10 @@ export const Header: React.FC<HeaderProps> = ({ fallbackUser, searchQuery, setSe
     }
   };
 
-  const displayName = profile?.display_name || profile?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || fallbackUser.name;
-  const displayHandle = profile?.username ? `@${profile.username}` : user?.email ? user.email : fallbackUser.handle;
-  const avatarUrl = profile?.avatar_url || fallbackUser.avatarUrl;
+  const ownProfile = profile?.id === user?.id ? profile : null;
+  const displayName = ownProfile?.display_name || ownProfile?.username || user?.user_metadata?.username || 'Пользователь';
+  const displayHandle = ownProfile?.username ? `@${ownProfile.username}` : '';
+  const avatarUrl = ownProfile?.avatar_url || '/default-avatar.png';
 
   return (
     <header className={styles.header}>
@@ -43,34 +46,21 @@ export const Header: React.FC<HeaderProps> = ({ fallbackUser, searchQuery, setSe
         </div>
 
         {/* Desktop Search Bar */}
-        <div className={styles.desktopSearchRow}>
-          <div className={styles.searchWrapper}>
-            <span className={styles.searchIcon}>🔍</span>
-            <input
-              type="text"
-              placeholder="Поиск треков, исполнителей и друзей..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
-            />
-            {searchQuery && (
-              <button className={styles.clearBtn} onClick={() => setSearchQuery('')}>
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
+        {showSearch && <div className={styles.desktopSearchRow}>
+          <MusicSearch/>
+        </div>}
 
         {/* User & Mobile Toggle Actions */}
         <div className={styles.userSection}>
           {/* Mobile Search Toggle Icon Button */}
-          <button
+          {showSearch && <button
             className={`${styles.iconBtn} ${styles.mobileSearchToggle}`}
             onClick={toggleMobileSearch}
             title="Поиск"
+            aria-label="Поиск"
           >
             <span>{isMobileSearchOpen ? '✕' : '🔍'}</span>
-          </button>
+          </button>}
 
           <NotificationsBell />
 
@@ -85,9 +75,6 @@ export const Header: React.FC<HeaderProps> = ({ fallbackUser, searchQuery, setSe
                   <span className={styles.userHandle}>{displayHandle}</span>
                 </div>
               </Link>
-              <button className={styles.logoutBtn} onClick={() => signOut()} title="Выйти из аккаунта">
-                Выйти
-              </button>
             </div>
           ) : (
             <div className={styles.authButtons}>
@@ -103,22 +90,9 @@ export const Header: React.FC<HeaderProps> = ({ fallbackUser, searchQuery, setSe
       </div>
 
       {/* Mobile Expandable Search Bar Row */}
-      {(isMobileSearchOpen || searchQuery) && (
+      {showSearch && (isMobileSearchOpen || searchQuery) && (
         <div className={styles.mobileSearchRow}>
-          <div className={styles.searchWrapper}>
-            <span className={styles.searchIcon}>🔍</span>
-            <input
-              type="text"
-              placeholder="Поиск треков, исполнителей..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
-              autoFocus
-            />
-            <button className={styles.clearBtn} onClick={handleCloseSearch} title="Закрыть поиск">
-              ✕
-            </button>
-          </div>
+          <MusicSearch mobile onClose={handleCloseSearch}/>
         </div>
       )}
     </header>

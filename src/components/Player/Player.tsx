@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { MusicQueue } from '../Music/MusicQueue';
+import { FavoriteButton, PlaylistButton } from '../Music/TrackActions';
 import styles from './Player.module.css';
 import { Track } from '../../types';
 import { usePlayer } from '../../context/PlayerContext';
+import {useFriendListening} from '../../context/FriendListeningContext';
 
 interface PlayerProps {
   currentTrack: Track;
@@ -15,15 +17,15 @@ interface PlayerProps {
 
 export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPrevTrack }) => {
   const {
-    mobileChatOpen, isPlaying, currentTime, duration, loading, error,
+    listeningControl, mobileChatOpen, isPlaying, currentTime, duration, loading, error,
     togglePlayback, seek, volume, setVolume, isMuted, toggleMuted,
-    isRepeat, toggleRepeat, canSkip, isShuffle, toggleShuffle, canShuffle, setSearchQuery,
+    isRepeat, repeatMode, toggleRepeat, canSkip, isShuffle, toggleShuffle, canShuffle, setSearchQuery,
   } = usePlayer();
-  const [isLiked, setIsLiked] = useState(false);
+  const {sound:friendSound}=useFriendListening();
   const [isExpandedMobile, setIsExpandedMobile] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const playable = Boolean(currentTrack.source);
-  const status = error ?? (loading ? 'Загрузка…' : '');
+  const status = error ?? (listeningControl?'Слушаете вместе с '+listeningControl.name:loading ? 'Загрузка…' : '');
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -51,12 +53,10 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
             </button>
             <span className={styles.expandedHeaderTitle}>Сейчас играет</span>
             <button className={styles.smallBtn} aria-label="Открыть очередь" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}>☷</button>
-            <button
-              className={`${styles.likeBtn} ${isLiked ? styles.liked : ''}`}
-              onClick={() => setIsLiked(!isLiked)}
-            >
-              {isLiked ? '❤️' : '🤍'}
-            </button>
+            <div className={styles.expandedHeaderActions}>
+              <PlaylistButton key={currentTrack.id} track={currentTrack} icon="+" placement="below" onNavigate={() => setIsExpandedMobile(false)}/>
+              <FavoriteButton track={currentTrack}/>
+            </div>
           </div>
 
           <div className={styles.expandedBody}>
@@ -76,10 +76,9 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
               <h3 className={styles.expandedTitle}>{currentTrack.title}</h3>
               {currentTrack.artistId ? <Link className={styles.expandedArtist} href={'/music/artists/' + currentTrack.artistId} onClick={() => { setSearchQuery(''); setIsExpandedMobile(false); }}>{currentTrack.artist}</Link>
                 : <p className={styles.expandedArtist}>{currentTrack.artist}</p>}
-              {currentTrack.sourceUrl ? (
-                <a className={styles.expandedAlbum} href={currentTrack.sourceUrl} target="_blank" rel="noopener noreferrer">Источник трека ↗</a>
-              ) : <span className={styles.expandedAlbum}>{currentTrack.album}</span>}
-              {currentTrack.attribution && <p className={styles.attribution}>{currentTrack.attribution} <a href={currentTrack.licenseUrl} target="_blank" rel="noopener noreferrer">{currentTrack.licenseCode?.replaceAll('-', ' ') ?? 'Лицензия'}</a></p>}
+              <div className={styles.expandedActions}>
+                {currentTrack.sourceUrl && <Link className={styles.sourceLink} href={'/music/credits#track-' + currentTrack.id} onClick={() => setIsExpandedMobile(false)}>Информация о треке</Link>}
+              </div>
               {status && <p className={styles.expandedStatus} role="status">{status}</p>}
             </div>
 
@@ -91,7 +90,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
                 max={duration || 0}
                 value={Math.min(currentTime, duration || 0)}
                 onChange={handleSeekChange}
-                disabled={!playable || !duration}
+                disabled={!playable || !duration || !!listeningControl}
                 aria-label="Позиция воспроизведения"
                 className={styles.seekBar}
                 style={{
@@ -112,28 +111,29 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
               >
                 🔀
               </button>
-              <button className={styles.stepBtn} onClick={onPrevTrack} disabled={!playable} aria-label="Предыдущий трек">
+              <button className={styles.stepBtn} onClick={onPrevTrack} disabled={!playable || !!listeningControl} aria-label="Предыдущий трек">
                 ⏮
               </button>
               <button
                 className={styles.expandedPlayPauseBtn}
                 onClick={togglePlayback}
                 disabled={!playable}
-                aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
+                aria-label={listeningControl?(friendSound?'Выключить звук у себя':'Включить звук'):isPlaying ? 'Пауза' : 'Воспроизвести'}
               >
                 {isPlaying ? '⏸' : '▶'}
               </button>
-              <button className={styles.stepBtn} onClick={onNextTrack} disabled={!canSkip} aria-label="Следующий трек">
+              <button className={styles.stepBtn} onClick={onNextTrack} disabled={!canSkip || !!listeningControl} aria-label="Следующий трек">
                 ⏭
               </button>
               <button
                 className={`${styles.smallBtn} ${isRepeat ? styles.activeMode : ''}`}
                 onClick={toggleRepeat}
-                disabled={!playable}
-                aria-label="Повтор трека"
+                disabled={!playable || !!listeningControl}
+                aria-label={`Повтор: ${repeatMode==='off'?'выключен':repeatMode==='all'?'вся очередь':'один трек'}`}
+                title="Повтор: выключен → вся очередь → один трек"
                 aria-pressed={isRepeat}
               >
-                🔁
+                {repeatMode==='one'?'🔂':'🔁'}
               </button>
             </div>
 
@@ -178,17 +178,10 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
             <span className={styles.title}>{currentTrack.title}</span>
             {currentTrack.artistId ? <Link className={styles.artist} href={'/music/artists/' + currentTrack.artistId} onClick={(event) => { event.stopPropagation(); setSearchQuery(''); }}>{currentTrack.artist}</Link>
               : <span className={styles.artist}>{currentTrack.artist}</span>}
+            {listeningControl&&<Link className={styles.artist} href="/friends" onClick={event=>event.stopPropagation()}>🎧 Вместе с {listeningControl.name}</Link>}
             {status && <span className={styles.playbackStatus} role="status" title={status}>{status}</span>}
           </div>
-          <button
-            className={`${styles.likeBtn} ${styles.desktopOnly} ${isLiked ? styles.liked : ''}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsLiked(!isLiked);
-            }}
-          >
-            {isLiked ? '❤️' : '🤍'}
-          </button>
+          <span className={styles.desktopOnly} onClick={event=>event.stopPropagation()}><FavoriteButton track={currentTrack}/></span>
         </div>
 
         {/* Center: Controls & Timeline (Desktop) */}
@@ -200,28 +193,29 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
             >
               🔀
             </button>
-            <button className={styles.stepBtn} onClick={onPrevTrack} disabled={!playable} aria-label="Предыдущий трек">
+            <button className={styles.stepBtn} onClick={onPrevTrack} disabled={!playable || !!listeningControl} aria-label="Предыдущий трек">
               ⏮
             </button>
             <button
               className={styles.playPauseBtn}
               onClick={togglePlayback}
                 disabled={!playable}
-                aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
+                aria-label={listeningControl?(friendSound?'Выключить звук у себя':'Включить звук'):isPlaying ? 'Пауза' : 'Воспроизвести'}
             >
               {isPlaying ? '⏸' : '▶'}
             </button>
-            <button className={styles.stepBtn} onClick={onNextTrack} disabled={!canSkip} aria-label="Следующий трек">
+            <button className={styles.stepBtn} onClick={onNextTrack} disabled={!canSkip || !!listeningControl} aria-label="Следующий трек">
               ⏭
             </button>
             <button
               className={`${styles.smallBtn} ${isRepeat ? styles.activeMode : ''}`}
               onClick={toggleRepeat}
-                disabled={!playable}
-                aria-label="Повтор трека"
+                disabled={!playable || !!listeningControl}
+                aria-label={`Повтор: ${repeatMode==='off'?'выключен':repeatMode==='all'?'вся очередь':'один трек'}`}
+                title="Повтор: выключен → вся очередь → один трек"
                 aria-pressed={isRepeat}
             >
-              🔁
+                {repeatMode==='one'?'🔂':'🔁'}
             </button>
           </div>
 
@@ -233,7 +227,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
               max={duration || 0}
               value={Math.min(currentTime, duration || 0)}
               onChange={handleSeekChange}
-                disabled={!playable || !duration}
+                disabled={!playable || !duration || !!listeningControl}
                 aria-label="Позиция воспроизведения"
               className={styles.seekBar}
               style={{
@@ -250,7 +244,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
           <button
             className={styles.mobilePlayBtn}
             disabled={!playable}
-            aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
+            aria-label={listeningControl?(friendSound?'Выключить звук у себя':'Включить звук'):isPlaying ? 'Пауза' : 'Воспроизвести'}
             onClick={(e) => {
               e.stopPropagation();
               togglePlayback();
@@ -290,7 +284,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
             }}
           />
           {currentTrack.sourceUrl && (
-            <Link className={styles.sourceLink} href={'/music/artists/' + currentTrack.artistId} onClick={() => setSearchQuery('')}>Автор и лицензия</Link>
+            <Link className={styles.sourceLink} href={'/music/credits#track-' + currentTrack.id}>О треке</Link>
           )}
         </div>
       </div>

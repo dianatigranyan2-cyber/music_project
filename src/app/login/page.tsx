@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
+import { PasswordInput } from '../../components/Auth/PasswordInput';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
@@ -71,9 +72,10 @@ export default function LoginPage() {
           </div>
 
           <div className={styles.fieldGroup}>
-            <label className={styles.label}>Пароль</label>
-            <input
-              type="password"
+            <label className={styles.label} htmlFor="password">Пароль</label>
+            <PasswordInput
+              id="password"
+              autoComplete="current-password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -82,6 +84,7 @@ export default function LoginPage() {
             />
           </div>
 
+          <Link href="/forgot-password" className={styles.link}>Забыли пароль?</Link>
           <button type="submit" className={styles.submitBtn} disabled={loading}>
             {loading ? 'Вход...' : 'Войти в аккаунт'}
           </button>

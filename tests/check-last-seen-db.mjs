@@ -1,10 +1,10 @@
 // Isolated PostgreSQL check; no connection to the project's Supabase.
-// Use the temporary PGlite installation described in check-social-presence-db.mjs.
+// npm install --prefix .music-import/db-check --no-save --package-lock=false --ignore-scripts @electric-sql/pglite
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 
-const requireRunner = createRequire(new URL('../.next/notifications-db-check/package.json', import.meta.url));
+const requireRunner = createRequire(new URL('../.music-import/db-check/package.json', import.meta.url));
 const { PGlite } = requireRunner('@electric-sql/pglite');
 const db = new PGlite();
 const A = '00000000-0000-4000-8000-000000000001';

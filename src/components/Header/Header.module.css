@@ -21,6 +21,7 @@
   width: 100%;
 }
 
+
 .mobileBrand {
   display: none;
   align-items: center;
@@ -113,6 +114,7 @@
 }
 
 .userSection {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -300,3 +302,9 @@
     transform: translateY(0);
   }
 }
+.suggestions { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 400; padding: 8px; max-height: min(480px, 65dvh); overflow: auto; border: 1px solid #ffffff28; border-radius: 16px; background: #19182b; box-shadow: 0 18px 50px #0009; }
+.suggestions button { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px; border-radius: 10px; color: var(--text-main); background: transparent; }
+.suggestions button:hover, .suggestions button[aria-selected=true] { background: #a855f733; }
+.suggestions small { display: block; margin-top: 4px; color: var(--text-muted); font-size: 12px; }
+.suggestions p { padding: 10px; color: var(--text-muted); font-size: 13px; }
+.suggestions .allResults { color: #d8b4fe; font-size: 13px; }

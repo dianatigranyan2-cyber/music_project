@@ -1,2 +1,2 @@
-import { MusicLibrary } from '../../components/Music/MusicLibrary';
-export default function ExplorePage() { return <MusicLibrary />; }
+import { redirect } from 'next/navigation';
+export default function ExplorePage() { redirect('/#music'); }

@@ -4,19 +4,20 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './Navigation.module.css';
+import {useFriendListening} from '../../context/FriendListeningContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { useMessageNotifications } from '../../context/MessageNotificationsContext';
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
+  const {following,friends=[]}=useFriendListening();
   const { mobileChatOpen } = usePlayer();
   const { unreadCount, setSelectedChatId } = useMessageNotifications();
   const messageBadge = unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : undefined;
 
   const navItems = [
     { id: 'home', href: '/', label: 'Главная', icon: '🏠' },
-    { id: 'explore', href: '/explore', label: 'Обзор', icon: '🧭' },
-    { id: 'friends', href: '/friends', label: 'Друзья', icon: '👥', badge: '3' },
+    { id: 'friends', href: '/friends', label: 'Друзья', icon: '👥', badge: friends.length?String(friends.length):undefined },
     { id: 'playlists', href: '/playlists', label: 'Плейлисты', icon: '🎵' },
     { id: 'messages', href: '/messages', label: 'Сообщения', icon: '💬', badge: messageBadge },
     { id: 'profile', href: '/profile', label: 'Профиль', icon: '👤' },
@@ -58,11 +59,11 @@ export const Navigation: React.FC = () => {
         </nav>
 
         <div className={styles.roomWidget}>
-          <div className={styles.roomBadge}>LIVE</div>
-          <p className={styles.roomTitle}>Музыкальная комната</p>
-          <p className={styles.roomSub}>3 друга уже слушают</p>
-          <Link href="/room/1" className={styles.joinBtn}>
-            Присоединиться
+          <div className={styles.roomBadge}>ВМЕСТЕ</div>
+          <p className={styles.roomTitle}>Музыка друзей</p>
+          <p className={styles.roomSub}>{following?'Слушаете вместе с '+following.name:'Узнайте, что слушают ваши друзья'}</p>
+          <Link href="/friends" className={styles.joinBtn}>
+            Открыть друзей
           </Link>
         </div>
       </aside>

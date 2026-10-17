@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react';
 import styles from './StoriesBar.module.css';
 import { Story } from '../../types';
-import { createClient } from '../../lib/supabase/client';
+import { StoryEditor } from './StoryEditor';
 
 interface StoriesBarProps {
   stories: Story[];
@@ -12,7 +12,7 @@ interface StoriesBarProps {
 }
 
 export const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onSelectStory, onStoryUploaded }) => {
-  const [supabase] = useState(() => createClient());
+  const [draftFile, setDraftFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleStoryClick = (story: Story) => {
@@ -28,69 +28,15 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onSelectStory, 
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        console.error('Authentication error or no authenticated user:', userError);
-        return;
-      }
-
-      const timestamp = Date.now();
-      const filePath = `${user.id}/${timestamp}-${file.name}`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('stories')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error('Error uploading story to Supabase Storage:', uploadError);
-        return;
-      }
-
-      const uploadedPath = uploadData?.path || filePath;
-      console.log('Successfully uploaded story to storage path:', uploadedPath);
-
-      const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
-
-      const { data: storyData, error: dbError } = await supabase
-        .from('stories')
-        .insert({
-          user_id: user.id,
-          media_url: '',
-          media_path: uploadedPath,
-          media_type: mediaType,
-        })
-        .select()
-        .single();
-
-      if (dbError) {
-        console.error('Error inserting story into database:', dbError);
-        // Delete uploaded file from storage to avoid orphaned file
-        await supabase.storage.from('stories').remove([uploadedPath]);
-        return;
-      }
-
-      console.log('Successfully created story in database:', storyData);
-      onStoryUploaded?.();
-    } catch (err) {
-      console.error('Unexpected error during story upload:', err);
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (file) setDraftFile(file);
   };
 
   return (
     <section className={styles.container}>
+      {draftFile && <StoryEditor initialFile={draftFile} onClose={() => setDraftFile(null)} onSaved={() => { setDraftFile(null); onStoryUploaded?.(); }}/>}
       <h3 className={styles.sectionTitle}>Истории друзей</h3>
 
       {/* Hidden file input for story upload */}

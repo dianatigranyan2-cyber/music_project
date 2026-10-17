@@ -1,5 +1,7 @@
 'use client';
 
+import {useBlocking} from '../../context/BlockingContext';
+import {BlockUser} from '../../components/Profile/BlockUser';
 import React, { Suspense, useCallback, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -8,14 +10,16 @@ import { CURRENT_USER } from '../../data/mockData';
 import { usePlayer } from '../../context/PlayerContext';
 import { useAuth } from '../../context/AuthContext';
 import { createClient } from '../../lib/supabase/client';
+import {ListenWithFriend} from '../../components/Music/FriendListeningStatus';
 import { useSocialPresence } from '../../context/SocialPresenceContext';
+import { useMessageNotifications } from '../../context/MessageNotificationsContext';
 
 interface UserSearchResult {
   id: string;
   username: string;
   display_name: string | null;
   avatar_url: string | null;
-  bio: string | null;
+  bio?: string | null;
 }
 
 interface FriendRequest {
@@ -43,7 +47,7 @@ interface OutboundPendingRequest {
     username: string;
     display_name: string | null;
     avatar_url: string | null;
-    bio: string | null;
+    bio?: string | null;
   };
 }
 
@@ -52,7 +56,7 @@ interface Friend {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
-  bio: string | null;
+  bio?: string | null;
 }
 
 function FriendsPageContent() {
@@ -60,7 +64,9 @@ function FriendsPageContent() {
   const searchParams = useSearchParams();
   const { searchQuery: headerSearchQuery } = usePlayer();
   const { user: currentUser } = useAuth();
+  const {data:blocks,ready:blocksReady}=useBlocking();
   const { getOnlineStatus, getStatusLabel } = useSocialPresence();
+  const { setSelectedChatId } = useMessageNotifications();
   const [supabase] = useState(() => createClient());
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
@@ -116,8 +122,7 @@ function FriendsPageContent() {
           id,
           username,
           display_name,
-          avatar_url,
-          bio
+          avatar_url
         )
       `)
       .eq('sender_id', currentUser.id)
@@ -174,7 +179,7 @@ function FriendsPageContent() {
 
     // Загружаем профили друзей
     const { data: friendProfiles, error: profilesError } = await supabase
-      .from('profiles')
+      .rpc('profile_directory')
       .select('id, username, display_name, avatar_url, bio')
       .in('id', friendIds);
 
@@ -212,8 +217,7 @@ function FriendsPageContent() {
             id,
             username,
             display_name,
-            avatar_url,
-            bio
+            avatar_url
           )
         `)
         .eq('sender_id', currentUser.id)
@@ -263,7 +267,7 @@ function FriendsPageContent() {
       if (isMounted) setIsSearching(true);
       try {
         let query = supabase
-          .from('profiles')
+          .rpc('profile_directory')
           .select('id, username, display_name, avatar_url, bio')
           .or(`username.ilike.%${cleanTerm}%,display_name.ilike.%${cleanTerm}%`);
 
@@ -399,7 +403,7 @@ function FriendsPageContent() {
       }
 
       const { data: friendProfiles, error: profilesError } = await supabase
-        .from('profiles')
+        .rpc('profile_directory')
         .select('id, username, display_name, avatar_url, bio')
         .in('id', friendIds);
 
@@ -549,6 +553,7 @@ function FriendsPageContent() {
     });
   };
   const filteredFriends = friends.filter((friend) => {
+    if(blocks?.peerIds.includes(friend.id))return false;
     const name = friend.display_name || friend.username;
     const query = headerSearchQuery.toLowerCase();
 
@@ -570,7 +575,7 @@ function FriendsPageContent() {
           className={`${styles.tabBtn} ${activeTab === 'my' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('my')}
         >
-          Мои друзья ({friends.length})
+          Мои друзья ({friends.filter(friend=>!blocks?.peerIds.includes(friend.id)).length})
         </button>
         <button
           className={`${styles.tabBtn} ${activeTab === 'requests' ? styles.activeTab : ''}`}
@@ -629,6 +634,7 @@ function FriendsPageContent() {
                           </span>
                         </div>
                         <span className={styles.statusMsg}>{getStatusLabel(friend.id)}</span>
+                        <ListenWithFriend friendId={friend.id}/>
                       </div>
 
                       <div className={styles.actions}>
@@ -639,24 +645,30 @@ function FriendsPageContent() {
                           👤 Профиль
                         </Link>
 
-                        <button
+                        <Link
+                          href="/messages"
                           className={styles.iconActionBtn}
                           title="Написать"
+                          aria-label={`Написать ${friendName}`}
+                          onClick={() => setSelectedChatId(friend.id)}
                         >
                           💬
-                        </button>
+                        </Link>
 
                         {/* ⋯ More menu */}
                         <div className={styles.menuWrapper} ref={openMenuId === friend.id ? menuRef : null}>
                           <button
                             className={styles.iconActionBtn}
                             title="Действия"
+                            aria-label={`Действия для ${friendName}`}
+                            aria-expanded={openMenuId===friend.id}
                             onClick={() => setOpenMenuId(openMenuId === friend.id ? null : friend.id)}
                           >
                             ⋯
                           </button>
                           {openMenuId === friend.id && (
                             <div className={styles.dropdownMenu}>
+                              <BlockUser id={friend.id} name={friendName} placement="menu"/>
                               <button
                                 className={styles.dropdownDanger}
                                 onClick={() => {
@@ -894,11 +906,11 @@ function FriendsPageContent() {
                         }
                       }}
                       disabled={
-                        isFriend ||
+                        !blocksReady || blocks?.peerIds.includes(userResult.id) || isFriend ||
                         sentRequests.includes(userResult.id)
                       }
                     >
-                      {isFriend
+                      {blocks?.peerIds.includes(userResult.id)?'Общение недоступно':isFriend
                         ? '✓ В друзьях'
                         : receivedRequests[userResult.id]
                           ? 'Принять заявку'

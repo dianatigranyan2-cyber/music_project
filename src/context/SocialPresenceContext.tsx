@@ -6,6 +6,7 @@ import { useAuth } from './AuthContext';
 import { createClient } from '../lib/supabase/client';
 import { hasOnlineSession, onlineStatusLabel } from '../lib/socialPresence';
 import type { OnlineStatus } from '../lib/socialPresence';
+import { createActivityUpdater } from '../lib/userActivity';
 
 type FriendPresence = { status: OnlineStatus; lastSeenAt: string | null };
 type Statuses = Record<string, FriendPresence>;
@@ -22,7 +23,6 @@ function PresenceConnections({ userId, onChange }: { userId: string; onChange: (
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     let ownChannel: RealtimeChannel | undefined;
     let friendshipChannel: RealtimeChannel | undefined;
-    let activityPending = false;
     const watchers = new Map<string, RealtimeChannel>();
 
     const setStatus = (friendId: string, status: OnlineStatus) => {
@@ -52,18 +52,12 @@ function PresenceConnections({ userId, onChange }: { userId: string; onChange: (
       }
     };
 
-    const touchActivity = async () => {
-      if (!active || activityPending) return;
-      activityPending = true;
-      try {
-        const { error } = await supabase.rpc('touch_user_activity');
-        if (error) throw error;
-      } catch (error) {
-        if (active) console.error('Не удалось сохранить время посещения:', error);
-      } finally {
-        activityPending = false;
-      }
-    };
+    const activity = createActivityUpdater({
+      write: signal => supabase.rpc('touch_user_activity').abortSignal(signal),
+      available: () => active && document.visibilityState === 'visible' && navigator.onLine !== false,
+      warn: message => console.warn(message),
+    });
+    const touchActivity = activity.touch;
 
     const watchFriend = (friendId: string) => {
       const channel = supabase.channel(`melo:presence:${friendId}`, {
@@ -145,7 +139,7 @@ function PresenceConnections({ userId, onChange }: { userId: string; onChange: (
     window.addEventListener('focus', refreshVisible);
     document.addEventListener('visibilitychange', refreshVisible);
     window.addEventListener('focus', touchActivity);
-    window.addEventListener('pagehide', touchActivity);
+    window.addEventListener('online', touchActivity);
     document.addEventListener('visibilitychange', touchActivity);
     void touchActivity();
     const activityTimer = setInterval(() => { void touchActivity(); }, 30_000);
@@ -153,13 +147,14 @@ function PresenceConnections({ userId, onChange }: { userId: string; onChange: (
 
     return () => {
       active = false;
+      activity.dispose();
       clearTimeout(refreshTimer);
       clearInterval(reconcile);
       clearInterval(activityTimer);
       window.removeEventListener('focus', refreshVisible);
       document.removeEventListener('visibilitychange', refreshVisible);
       window.removeEventListener('focus', touchActivity);
-      window.removeEventListener('pagehide', touchActivity);
+      window.removeEventListener('online', touchActivity);
       document.removeEventListener('visibilitychange', touchActivity);
       for (const channel of watchers.values()) void supabase.removeChannel(channel);
       watchers.clear();

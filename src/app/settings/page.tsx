@@ -1,39 +1,41 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 import { useAuth } from '../../context/AuthContext';
-import { CURRENT_USER } from '../../data/mockData';
+import {useFriendListening} from '../../context/FriendListeningContext';
+import {BlockedUsers} from '../../components/Profile/BlockUser';
+import {CatalogAdminLink} from '../../components/Music/CatalogAdminLink';
+import { AccountPrivacy } from '../../components/Profile/AccountPrivacy';
 
 export default function SettingsPage() {
-  const { user, profile, updateProfile, uploadAvatar, checkUsernameTaken } = useAuth();
+  const { user, profile, loading } = useAuth();
+  if (loading) return <p role="status">Загружаем настройки…</p>;
+  if (!user) return <section className={styles.container}><h1 className={styles.title}>Настройки аккаунта</h1><p>Войдите, чтобы изменить настройки своего аккаунта.</p><Link href="/login" className={styles.fileSelectBtn}>Войти</Link></section>;
+  return <SettingsForm key={user.id + (profile?.id === user.id ? ':ready' : ':pending')}/>;
+}
+
+function SettingsForm() {
+  const { user, profile, signOut, updateProfile, uploadAvatar, checkUsernameTaken } = useAuth();
+  const ownProfile = profile?.id === user?.id ? profile : null;
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
+  const [username, setUsername] = useState(ownProfile?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || '');
+  const [displayName, setDisplayName] = useState(ownProfile?.display_name || '');
+  const [bio, setBio] = useState(ownProfile?.bio || '');
+  const [avatarUrl, setAvatarUrl] = useState(ownProfile?.avatar_url || '');
 
-  const [broadcastListening, setBroadcastListening] = useState(true);
-  const [allowRoomInvites, setAllowRoomInvites] = useState(true);
+  const {preferences:musicPreferences,updatePreferences,busy:musicSaving,ready:musicReady}=useFriendListening();
   const [audioQuality, setAudioQuality] = useState('high');
 
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Sync form inputs with loaded profile
-  useEffect(() => {
-    if (profile) {
-      setUsername(profile.username || '');
-      setDisplayName(profile.display_name || '');
-      setBio(profile.bio || '');
-      setAvatarUrl(profile.avatar_url || '');
-    } else if (user) {
-      setUsername(user.user_metadata?.username || user.email?.split('@')[0] || '');
-    }
-  }, [profile, user]);
 
   const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -138,7 +140,15 @@ export default function SettingsPage() {
     }
   };
 
-  const currentPreviewAvatar = avatarUrl || CURRENT_USER.avatarUrl;
+  const currentPreviewAvatar = avatarUrl || '/default-avatar.png';
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true); setError(null);
+    try { await signOut(); router.replace('/login'); }
+    catch { setError('Не удалось выйти из аккаунта. Проверьте подключение и попробуйте ещё раз.'); }
+    finally { setLoggingOut(false); }
+  };
 
   return (
     <div className={styles.container}>
@@ -146,6 +156,8 @@ export default function SettingsPage() {
         <h1 className={styles.title}>Настройки аккаунта</h1>
         <p className={styles.subtitle}>Управляйте личной информацией, аватаркой и настройками Melo.</p>
       </header>
+      <CatalogAdminLink/>
+      <AccountPrivacy disabled={saving || uploadingAvatar || loggingOut}/>
 
       {savedNotice && (
         <div className={styles.savedBanner}>
@@ -161,7 +173,7 @@ export default function SettingsPage() {
 
       <form onSubmit={handleSave} className={styles.form}>
         {/* Account & Profile Section */}
-        <section className={styles.section}>
+        <section className={styles.section} id="profile-details">
           <h2 className={styles.sectionTitle}>Профиль и аккаунт</h2>
 
           {/* Avatar Upload Field */}
@@ -279,21 +291,21 @@ export default function SettingsPage() {
             </div>
             <input
               type="checkbox"
-              checked={broadcastListening}
-              onChange={(e) => setBroadcastListening(e.target.checked)}
+              aria-label="Транслировать статус прослушивания" checked={musicPreferences.broadcast} disabled={musicSaving||!musicReady}
+              onChange={(e) => void updatePreferences(e.target.checked,musicPreferences.allowFollow)}
               className={styles.checkbox}
             />
           </div>
 
           <div className={styles.toggleRow}>
             <div>
-              <span className={styles.toggleTitle}>Приглашения в комнаты</span>
-              <p className={styles.toggleDesc}>Разрешить друзьям отправлять приглашения в совместные сессии.</p>
+              <span className={styles.toggleTitle}>Разрешать друзьям слушать со мной</span>
+              <p className={styles.toggleDesc}>Друзья смогут присоединяться к вашей музыке. Настройки сохраняются сразу.</p>
             </div>
             <input
               type="checkbox"
-              checked={allowRoomInvites}
-              onChange={(e) => setAllowRoomInvites(e.target.checked)}
+              aria-label="Разрешать друзьям слушать со мной" checked={musicPreferences.allowFollow} disabled={musicSaving||!musicReady}
+              onChange={(e) => void updatePreferences(musicPreferences.broadcast,e.target.checked)}
               className={styles.checkbox}
             />
           </div>
@@ -305,6 +317,13 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+      <BlockedUsers/>
+      <section className={styles.section}><h2 className={styles.sectionTitle}>Пароль</h2><Link href="/forgot-password">Восстановить пароль через почту</Link></section>
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Выход из аккаунта</h2>
+        <p className={styles.toggleDesc}>Выйти из Melo. Ваши данные и музыка сохранятся.</p>
+        <button type="button" className={styles.logoutBtn} disabled={loggingOut || saving || uploadingAvatar} onClick={() => void handleLogout()}>{loggingOut ? 'Выходим…' : 'Выйти из аккаунта'}</button>
+      </section>
     </div>
   );
 }

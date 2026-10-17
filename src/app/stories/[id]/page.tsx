@@ -4,17 +4,15 @@ import React, { useState, useEffect, useRef, use, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
+import { StoryEditor } from '../../../components/Stories/StoryEditor';
+import { StoryMusic } from '../../../components/Stories/StoryMusic';
+import { StoryCanvas } from '../../../components/Stories/StoryCanvas';
+import { initialStoryPresentation } from '../../../lib/storyPresentation';
+import { useMusicLibrary } from '../../../hooks/useMusicLibrary';
+import type { EditableStory } from '../../../lib/storyEditing';
 import { createClient } from '../../../lib/supabase/client';
 
-interface StoryData {
-  id: string;
-  user_id: string;
-  media_url: string;
-  media_path?: string | null;
-  media_type: 'image' | 'video';
-  created_at: string;
-  expires_at: string;
-}
+type StoryData = EditableStory;
 
 interface UserProfile {
   username: string;
@@ -64,6 +62,19 @@ export default function StoryViewerPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const storyId = resolvedParams.id;
   const router = useRouter();
+  const { library, error: musicLibraryError } = useMusicLibrary();
+  const [editing, setEditing] = useState(false);
+  const [storyRevision, setStoryRevision] = useState(0);
+  const [musicWaiting, setMusicWaiting] = useState(false);
+  const [mediaTime, setMediaTime] = useState(0);
+  const [pageHidden, setPageHidden] = useState(false);
+  const transitioning = useRef(false);
+  useEffect(() => {
+    const visibility = () => setPageHidden(document.hidden);
+    document.addEventListener('visibilitychange', visibility);
+    return () => document.removeEventListener('visibilitychange', visibility);
+  }, []);
+  useEffect(() => { transitioning.current = false; }, [storyId]);
 
   const [supabase] = useState(() => createClient());
   const [userGroups, setUserGroups] = useState<UserStoryGroup[]>([]);
@@ -141,7 +152,7 @@ export default function StoryViewerPage({ params }: PageProps) {
         ];
         const { data: allActiveStories, error: storiesError } = await supabase
           .from('stories')
-          .select('id, user_id, media_url, media_path, media_type, created_at, expires_at')
+          .select('id, user_id, media_url, media_path, media_type, created_at, expires_at, caption, presentation, music_track_id, music_start_seconds, music_duration_seconds')
           .in('user_id', allowedUserIds)
           .gt('expires_at', nowIso)
           .order('created_at', { ascending: true });
@@ -230,6 +241,7 @@ export default function StoryViewerPage({ params }: PageProps) {
           setStory(groups[targetGroupIdx].stories[targetStoryIdx]);
           setProfile(groups[targetGroupIdx].profile || null);
           setProgress(0);
+          setMediaTime(0); setMusicWaiting(false); setIsPaused(false); setIsMenuOpen(false); setEditing(false);
           setIsMenuOpen(false);
           setIsViewersModalOpen(false);
         }
@@ -464,7 +476,7 @@ export default function StoryViewerPage({ params }: PageProps) {
       // Clean up previous channel subscription on story switch or unmount
       supabase.removeChannel(channel);
     };
-  }, [story?.id, currentUserId, supabase]);
+  }, [story, currentUserId, supabase]);
 
   // Re-verify likes whenever viewers modal is opened
   useEffect(() => {
@@ -601,10 +613,22 @@ export default function StoryViewerPage({ params }: PageProps) {
     }
   };
 
+  const musicTrack = library?.tracks.find(track => track.id === story?.music_track_id);
+  const presentation = initialStoryPresentation(story?.presentation, story?.caption ?? '', !!musicTrack);
+  const pausedForControls = isPaused || isMenuOpen || isViewersModalOpen || editing || pageHidden;
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) return;
+    if (pausedForControls || musicWaiting) element.pause();
+    else void element.play().catch(() => {});
+  }, [pausedForControls, musicWaiting, story?.id]);
+
   // Navigation handlers
   const goToNextStory = useCallback(() => {
+    if (transitioning.current) return;
     const currentGroup = userGroups[currentGroupIndex];
     if (!currentGroup) return;
+    transitioning.current = true;
 
     if (currentStoryIndex < currentGroup.stories.length - 1) {
       // Next story of the SAME user
@@ -639,12 +663,12 @@ export default function StoryViewerPage({ params }: PageProps) {
 
   // Timer for IMAGE stories (5 seconds)
   useEffect(() => {
-    if (loading || notFound || !story || story.media_type !== 'image' || isPaused || isMenuOpen || isViewersModalOpen) {
+    if (loading || notFound || !story || story.media_type !== 'image' || pausedForControls || musicWaiting || (story.music_track_id && !library && !musicLibraryError)) {
       return;
     }
 
     const intervalMs = 50;
-    const totalDurationMs = 5000;
+    const totalDurationMs = musicTrack ? (story.music_duration_seconds ?? 15) * 1000 : 5000;
     const increment = (intervalMs / totalDurationMs) * 100;
 
     const timer = setInterval(() => {
@@ -661,12 +685,16 @@ export default function StoryViewerPage({ params }: PageProps) {
     return () => {
       clearInterval(timer);
     };
-  }, [loading, notFound, story, isPaused, isMenuOpen, isViewersModalOpen, goToNextStory]);
+  }, [loading, notFound, story, pausedForControls, musicWaiting, musicTrack, library, musicLibraryError, goToNextStory]);
 
   // Video event handlers
   const handleVideoTimeUpdate = () => {
     if (videoRef.current && videoRef.current.duration) {
-      const pct = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+      const elapsed = videoRef.current.currentTime;
+      setMediaTime(elapsed);
+      const length = musicTrack ? Math.min(videoRef.current.duration, story?.music_duration_seconds ?? 15) : videoRef.current.duration;
+      if (elapsed >= length) { goToNextStory(); return; }
+      const pct = (elapsed / length) * 100;
       setProgress(pct);
     }
   };
@@ -677,7 +705,7 @@ export default function StoryViewerPage({ params }: PageProps) {
 
   // Press-and-hold pause and tap navigation logic
   const handlePointerDown = () => {
-    if (isMenuOpen || isViewersModalOpen) return;
+    if (isMenuOpen || isViewersModalOpen || editing) return;
     pressStartTimeRef.current = Date.now();
     setIsPaused(true);
     if (story?.media_type === 'video' && videoRef.current) {
@@ -686,7 +714,7 @@ export default function StoryViewerPage({ params }: PageProps) {
   };
 
   const handlePointerUp = (direction: 'left' | 'right') => {
-    if (isMenuOpen || isViewersModalOpen) return;
+    if (isMenuOpen || isViewersModalOpen || editing) return;
     const pressDuration = Date.now() - pressStartTimeRef.current;
     setIsPaused(false);
     if (story?.media_type === 'video' && videoRef.current) {
@@ -831,8 +859,9 @@ export default function StoryViewerPage({ params }: PageProps) {
                   className={styles.menuBtn}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsMenuOpen((prev) => !prev);
-                    setIsPaused(true);
+                    const next = !isMenuOpen;
+                    setIsMenuOpen(next);
+                    setIsPaused(next);
                     if (story?.media_type === 'video' && videoRef.current) {
                       videoRef.current.pause();
                     }
@@ -843,6 +872,7 @@ export default function StoryViewerPage({ params }: PageProps) {
                 </button>
                 {isMenuOpen && (
                   <div className={styles.dropdownMenu}>
+                    <button className={styles.editOption} onClick={() => { setIsMenuOpen(false); setEditing(true); setIsPaused(true); }}>✏️ Редактировать историю</button>
                     <button
                       className={styles.deleteOption}
                       onClick={handleDeleteStory}
@@ -888,9 +918,10 @@ export default function StoryViewerPage({ params }: PageProps) {
                 onTouchEnd={() => handlePointerUp('right')}
               />
 
-              {story.media_type === 'video' ? (
+              <StoryCanvas presentation={presentation} music={musicTrack}>{story.media_type === 'video' ? (
                 <video
                   ref={videoRef}
+                  muted={!!musicTrack}
                   src={story.media_url}
                   className={styles.mediaImg}
                   autoPlay
@@ -901,10 +932,21 @@ export default function StoryViewerPage({ params }: PageProps) {
               ) : (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={story.media_url} alt="Story" className={styles.mediaImg} />
-              )}
+              )}</StoryCanvas>
             </>
           )}
         </div>
+
+        {!loading && story && !notFound && <div className={styles.storyDetails}>
+          {musicTrack && <StoryMusic compact key={story.id + ':' + story.music_track_id + ':' + storyRevision} track={musicTrack} start={story.music_start_seconds ?? 0} duration={story.music_duration_seconds ?? 15} paused={pausedForControls} videoTime={story.media_type === 'video' ? mediaTime : null} onWaiting={setMusicWaiting} onEnded={goToNextStory}/>}
+          {story.music_track_id && library && !musicTrack && <p>Музыка сейчас недоступна.</p>}
+        </div>}
+        {editing && story && isOwnStory && <StoryEditor story={story} onClose={() => { setEditing(false); setIsPaused(false); }} onSaved={saved => {
+          setStory(saved); setUserGroups(groups => groups.map(group => ({ ...group, stories: group.stories.map(item => item.id === saved.id ? saved : item) })));
+          setStoryRevision(value => value + 1);
+          setProgress(0); setMediaTime(0); setMusicWaiting(false); setEditing(false); setIsPaused(false);
+          if (videoRef.current) videoRef.current.currentTime = 0;
+        }}/>}
 
         {/* Story Footer Controls */}
         {!loading && !notFound && story && (

@@ -252,11 +252,14 @@
 }
 
 .expandedHeader {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
 }
+
+.expandedHeaderActions { display: flex; align-items: center; gap: 8px; }
 
 .closeBtn {
   font-size: 16px;
@@ -273,7 +276,7 @@
 }
 
 .expandedBody {
-  flex: 1;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -432,6 +435,7 @@
 .playbackStatus { display: block; max-width: 220px; font-size: 10px; color: #e9b3ce; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .expandedStatus { color: #e9b3ce; font-size: 13px; }
 .sourceLink { color: #d8b4fe; font-size: 11px; white-space: nowrap; }
+.expandedActions { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 18px; }
 .attribution { color: var(--text-muted); font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; margin-top: 12px; }
 .attribution a { color: #d8b4fe; }
 .playerContainer button:disabled, .mobileExpandedOverlay button:disabled { opacity: .35; cursor: default; }

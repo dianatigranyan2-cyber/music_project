@@ -1,24 +1,26 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import styles from './page.module.css';
 import { StoriesBar } from '../components/Stories/StoriesBar';
 import { FriendCard } from '../components/FriendCard/FriendCard';
 import { usePlayer } from '../context/PlayerContext';
 import { useAuth } from '../context/AuthContext';
 import { createClient } from '../lib/supabase/client';
-import {
-  MOCK_FRIENDS,
-} from '../data/mockData';
+import {useFriendListening} from '../context/FriendListeningContext';
+import {useMusicLibrary} from '../hooks/useMusicLibrary';
+import {useSocialPresence} from '../context/SocialPresenceContext';
+import {listeningTrack} from '../lib/friendListening';
 import { MusicLibrary } from '../components/Music/MusicLibrary';
-import { Track, Story } from '../types';
+import { Story } from '../types';
 
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const router = useRouter();
-  const { currentTrack, playTrack, searchQuery } = usePlayer();
+  const {searchQuery}=usePlayer();
+  const {friends:activities,listeners}=useFriendListening();const {library}=useMusicLibrary();const {getOnlineStatus}=useSocialPresence();
+  const realFriends=activities.map(activity=>({...activity,listeningWithMe:listeners.some(listener=>listener.id===activity.id),avatarUrl:activity.avatarUrl||'/default-avatar.png',isOnline:getOnlineStatus(activity.id)==='online',currentTrack:listeningTrack(activity,library?.tracks??[])}));
   const { user: currentUser, profile: currentProfile } = useAuth();
   const [supabase] = useState(() => createClient());
   const [stories, setStories] = useState<Story[]>([]);
@@ -176,10 +178,10 @@ export default function Home() {
     } catch (err) {
       console.error('Unexpected error loading real stories:', err);
     }
-  }, [currentUser?.id, currentProfile, supabase]);
+  }, [currentUser, currentProfile, supabase]);
 
   useEffect(() => {
-    loadStories();
+    queueMicrotask(()=>void loadStories());
 
     const handleFocus = () => {
       loadStories();
@@ -191,7 +193,7 @@ export default function Home() {
     };
   }, [loadStories]);
 
-  const filteredFriends = MOCK_FRIENDS.filter((friend) => {
+  const filteredFriends = realFriends.filter((friend) => {
     const matchesSearch =
       friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       friend.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -200,7 +202,7 @@ export default function Home() {
 
     if (!matchesSearch) return false;
 
-    if (filterMode === 'listening') return Boolean(friend.currentTrack);
+    if (filterMode === 'listening') return Boolean(friend.currentTrack)||friend.listeningWithMe;
     if (filterMode === 'online') return friend.isOnline;
     return true;
   });
@@ -215,15 +217,6 @@ export default function Home() {
       />
 
       {/* Social Banner */}
-      <section className={styles.heroBanner}>
-        <div className={styles.heroText}>
-          <h2>Слушайте вместе в реальном времени</h2>
-          <p>Присоединяйтесь к сессиям друзей, общайтесь и делитесь плейлистами без задержек.</p>
-        </div>
-        <Link href="/room/1" className={styles.listenRoomBtn}>
-          Создать комнату 🎧
-        </Link>
-      </section>
 
       {/* Friends Section Header */}
       <section className={styles.sectionHeader}>
@@ -236,19 +229,19 @@ export default function Home() {
             className={`${styles.filterBtn} ${filterMode === 'all' ? styles.activeFilter : ''}`}
             onClick={() => setFilterMode('all')}
           >
-            Все ({MOCK_FRIENDS.length})
+            Все ({realFriends.length})
           </button>
           <button
             className={`${styles.filterBtn} ${filterMode === 'listening' ? styles.activeFilter : ''}`}
             onClick={() => setFilterMode('listening')}
           >
-            Слушают сейчас ({MOCK_FRIENDS.filter((f) => f.currentTrack).length})
+            Слушают сейчас ({realFriends.filter((f) => f.currentTrack||f.listeningWithMe).length})
           </button>
           <button
             className={`${styles.filterBtn} ${filterMode === 'online' ? styles.activeFilter : ''}`}
             onClick={() => setFilterMode('online')}
           >
-            В сети ({MOCK_FRIENDS.filter((f) => f.isOnline).length})
+            В сети ({realFriends.filter((f) => f.isOnline).length})
           </button>
         </div>
       </section>
@@ -260,18 +253,16 @@ export default function Home() {
             <FriendCard
               key={friend.id}
               friend={friend}
-              onPlayTrack={(track: Track) => playTrack(track)}
-              isPlayingThisTrack={friend.currentTrack?.id === currentTrack.id}
             />
           ))
         ) : (
           <div className={styles.emptyState}>
-            <p>Друзья по вашему запросу «{searchQuery}» не найдены.</p>
+            <p>{searchQuery?'Друзья по вашему запросу «'+searchQuery+'» не найдены.':filterMode==='listening'?'Друзья сейчас ничего не слушают.':'Здесь появится активность ваших друзей.'}</p>
           </div>
         )}
       </div>
 
-      <MusicLibrary compact />
+      <div id="music" className={styles.musicOverview}><MusicLibrary /></div>
     </div>
   );
 }

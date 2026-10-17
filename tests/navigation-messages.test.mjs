@@ -23,6 +23,7 @@ const dependencies = (name) => {
   if (name === 'next/link') return TestLink;
   if (name === 'next/navigation') return { usePathname: () => '/' };
   if (name.endsWith('Navigation.module.css')) return styles;
+  if (name.endsWith('FriendListeningContext')) return {useFriendListening:()=>({following:null})};
   if (name.endsWith('PlayerContext')) return { usePlayer: () => ({ mobileChatOpen: false }) };
   if (name.endsWith('MessageNotificationsContext')) return {
     useMessageNotifications: () => ({ unreadCount, setSelectedChatId: (id) => { selectedChatId = id; } }),

@@ -1,0 +1,17 @@
+.canvas { position: relative; width: 100%; height: 100%; overflow: hidden; background: #080a12; container-type: inline-size; isolation: isolate; }
+.media, .asset { position: absolute; inset: 0; pointer-events: none; }
+.asset > img, .asset > video { width: 100%; height: 100%; object-fit: var(--story-fit, cover); object-position: var(--story-position, 50% 50%); display: block; }
+.layer { position: absolute; z-index: 1; display: block; width: max-content; max-width: 88%; padding: .24em .48em; border: 2px solid transparent; border-radius: .35em; text-align: center; font-weight: 700; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.2; user-select: none; text-shadow: 0 1px 5px #0008; }
+button.layer { cursor: grab; touch-action: none; }
+button.layer:active { cursor: grabbing; }
+button.layer:focus-visible, .selected { border-color: #fff; outline: 2px solid #a855f7; outline-offset: 3px; }
+.none { background: transparent; }
+.dark { background: #17121dde; }
+.light { background: #fffffff2; text-shadow: none; }
+.sticker { padding: 0; line-height: 1.1; text-shadow: none; }
+.music { display: flex; align-items: center; gap: .6em; text-align: left; min-width: 8em; }
+.music strong { display: block; line-height: 1.2; }
+.music small { display: block; margin-top: .3em; font-size: .75em; font-weight: 400; opacity: .8; }
+.note { display: grid; place-items: center; font-size: 1.6em; width: 1.5em; height: 1.5em; flex-shrink: 0; border-radius: .25em; background: linear-gradient(135deg,#9b4bdb,#e25eaa); color: white; }
+.cropMode { cursor: move; touch-action: none; }
+.cropGrid { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(90deg,transparent 33.1%,#fff7 33.2%,#fff7 33.5%,transparent 33.6%,transparent 66.4%,#fff7 66.5%,#fff7 66.8%,transparent 66.9%),linear-gradient(transparent 33.1%,#fff7 33.2%,#fff7 33.5%,transparent 33.6%,transparent 66.4%,#fff7 66.5%,#fff7 66.8%,transparent 66.9%); }

@@ -2,6 +2,11 @@
 
 
 
+import {MusicMessageCard} from '../../components/Messages/MusicMessageCard';
+import {MusicMessagePicker} from '../../components/Messages/MusicMessagePicker';
+import {parseMusicMessage} from '../../lib/musicMessages';
+import {useBlocking} from '../../context/BlockingContext';
+import {ChatActions} from '../../components/Messages/ChatActions';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import Link from 'next/link';
@@ -163,7 +168,13 @@ const getDateLabel = (dateString: string) => {
 
 
 
-export default function MessagesPage() {
+export default function MessagesPage(){
+  const {user,loading}=useAuth();
+  if(loading)return <p role="status">Загружаем сообщения…</p>;
+  if(!user)return <p>Войдите, чтобы открыть сообщения. <Link href="/login">Войти</Link></p>;
+  return <MessagesSessionPage key={user.id}/>;
+}
+function MessagesSessionPage() {
 
   const { setMobileChatOpen } = usePlayer();
 
@@ -178,6 +189,12 @@ export default function MessagesPage() {
   const { isTyping, updateTyping, stopTyping } = useTypingIndicator(currentUser?.id ?? null, selectedChatId);
 
   const [inputMessage, setInputMessage] = useState('');
+  const {data:blocks,ready:blocksReady}=useBlocking();
+  const chatBlocked=!!selectedChatId&&!!blocks?.peerIds.includes(selectedChatId);
+  const [musicPickerFor,setMusicPickerFor]=useState<string|null>(null);
+  const [sending,setSending]=useState(false);
+  const sendingRef=useRef(false);
+  const [sendError,setSendError]=useState('');
 
   const [chatHistories, setChatHistories] = useState<
 
@@ -194,7 +211,7 @@ export default function MessagesPage() {
   const pendingStoryIdsRef = useRef<Set<string>>(new Set());
   const storyRetryTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const storiesMapRef = useRef(storiesMap);
-  storiesMapRef.current = storiesMap;
+  useEffect(()=>{storiesMapRef.current=storiesMap;},[storiesMap]);
 
   // Context menu state: which message id + position
 
@@ -206,7 +223,7 @@ export default function MessagesPage() {
 
   // A missing row can be temporary (RLS, network, or propagation delay).
   // Never start network requests or timers from a React state updater.
-  const fetchStorySnippets = useCallback(async (ids: string[], attempt = 0) => {
+  const fetchStorySnippets = useCallback(async function fetchSnippets(ids: string[], attempt = 0) {
     if (!ids.length) return;
 
     const { data, error } = await supabase
@@ -262,7 +279,7 @@ export default function MessagesPage() {
         const timer = setTimeout(() => {
           storyRetryTimersRef.current.delete(timer);
           const stillMissing = missing.filter((id) => pendingStoryIdsRef.current.has(id));
-          if (stillMissing.length) void fetchStorySnippets(stillMissing, attempt + 1);
+          if (stillMissing.length) void fetchSnippets(stillMissing, attempt + 1);
         }, delays[attempt]);
         storyRetryTimersRef.current.add(timer);
       } else {
@@ -311,11 +328,8 @@ export default function MessagesPage() {
   }, [currentUser, chatHistories, fetchStorySnippets]);
 
   useEffect(() => {
-    return () => {
-      storyRetryTimersRef.current.forEach(timer => clearTimeout(timer));
-      storyRetryTimersRef.current.clear();
-      pendingStoryIdsRef.current.clear();
-    };
+    const timers=storyRetryTimersRef.current;const pending=pendingStoryIdsRef.current;
+    return () => {timers.forEach(timer=>clearTimeout(timer));timers.clear();pending.clear();};
   }, []);
 
   // Inline edit state
@@ -648,13 +662,7 @@ export default function MessagesPage() {
 
   useEffect(() => {
 
-    if (!currentUser) {
-
-      setFriends([]);
-
-      return;
-
-    }
+    if (!currentUser) return;
 
 
 
@@ -698,6 +706,8 @@ export default function MessagesPage() {
 
 
 
+      const {data:pastMessages}=await supabase.from('messages').select('sender_id,receiver_id').or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+      for(const message of pastMessages??[]){const peer=message.sender_id===currentUser.id?message.receiver_id:message.sender_id;if(!friendIds.includes(peer))friendIds.push(peer);}
       if (friendIds.length === 0) {
 
         setFriends([]);
@@ -744,23 +754,11 @@ export default function MessagesPage() {
 
   useEffect(() => {
 
-    if (!currentUser) {
-
-      setChatHistories({});
-
-      return;
-
-    }
+    if (!currentUser) return;
 
 
 
-    if (friends.length === 0) {
-
-      setChatHistories({});
-
-      return;
-
-    }
+    if (friends.length === 0) return;
 
 
 
@@ -998,7 +996,7 @@ export default function MessagesPage() {
 
       if (error) {
 
-        console.error('Error marking messages as read:', error);
+        console.error('Error marking messages as read:', error.message, error.code);
 
         return;
 
@@ -1584,17 +1582,19 @@ export default function MessagesPage() {
 
   // Send message.
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-
-    e.preventDefault();
+  const sendContent = async (content: string): Promise<boolean> => {
 
 
 
-    const content = inputMessage.trim();
 
 
 
-    if (!content || !selectedChatId || !currentUser) return;
+
+
+
+    if (!content || !selectedChatId || !currentUser || !blocksReady || chatBlocked || sendingRef.current) return false;
+    sendingRef.current=true;setSending(true);setSendError('');
+    try {
     stopTyping();
 
 
@@ -1623,9 +1623,9 @@ export default function MessagesPage() {
 
     if (error) {
 
-      console.error('Error sending message:', error);
+      setSendError('Сообщение не отправлено. Проверьте подключение, дружбу с получателем и блокировки.');
 
-      return;
+      return false;
 
     }
 
@@ -1701,9 +1701,16 @@ export default function MessagesPage() {
 
 
 
-    setInputMessage('');
+    return true;
 
+    } catch {setSendError('Не удалось отправить сообщение. Попробуйте ещё раз.');return false;}
+    finally {sendingRef.current=false;setSending(false);}
   };
+  const handleSendMessage = async (event:React.FormEvent) => {
+    event.preventDefault();if(await sendContent(inputMessage.trim()))setInputMessage('');
+  };
+
+
 
 
 
@@ -1894,7 +1901,6 @@ export default function MessagesPage() {
                   <div className={styles.avatarWrapper}>
 
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-
                     <img
 
                       src={
@@ -2031,7 +2037,7 @@ export default function MessagesPage() {
 
                           : ''}
 
-                        {lastMsg.text}
+                        {parseMusicMessage(lastMsg.text)?(parseMusicMessage(lastMsg.text)?.kind==='track'?'♫ Трек':'♫ Плейлист'):lastMsg.text}
 
                       </p>
 
@@ -2108,7 +2114,6 @@ export default function MessagesPage() {
               <div className={styles.headerUserInfo}>
 
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-
                 <img
 
                   src={
@@ -2155,6 +2160,7 @@ export default function MessagesPage() {
 
               </div>
 
+              <ChatActions key={activeFriend.id} peerId={activeFriend.id} name={activeFriend.display_name||activeFriend.username} musicDisabled={!blocksReady||chatBlocked||sending} onMusic={()=>setMusicPickerFor(musicPickerFor===selectedChatId?null:selectedChatId)}/>
             </div>
 
 
@@ -2238,7 +2244,6 @@ export default function MessagesPage() {
                           showAvatar ? (
 
                             // eslint-disable-next-line @next/next/no-img-element
-
                             <img
 
                               src={
@@ -2482,7 +2487,6 @@ export default function MessagesPage() {
                                         ) : (
 
                                           /* eslint-disable-next-line @next/next/no-img-element */
-
                                           <img
 
                                             src={storySnippet.media_url}
@@ -2507,11 +2511,7 @@ export default function MessagesPage() {
 
 
 
-                              <p className={styles.messageText}>
-
-                                {msg.text}
-
-                              </p>
+                              <div className={styles.messageText}>{parseMusicMessage(msg.text)?<MusicMessageCard content={msg.text}/>:msg.text}</div>
 
                             </>
 
@@ -2607,6 +2607,9 @@ export default function MessagesPage() {
 
 
 
+            {chatBlocked&&<p role="status">Общение с этим пользователем недоступно. История сообщений сохранена.</p>}
+            {sendError&&<p role="alert">{sendError}</p>}
+            {musicPickerFor===selectedChatId&&!chatBlocked&&<MusicMessagePicker busy={sending} onSend={sendContent} onClose={()=>setMusicPickerFor(null)}/>}
             <form
 
               onSubmit={handleSendMessage}
@@ -2619,7 +2622,8 @@ export default function MessagesPage() {
 
                 type="text"
 
-                placeholder="Написать сообщение..."
+                disabled={!blocksReady||chatBlocked||sending}
+                    placeholder="Написать сообщение..."
 
                 value={inputMessage}
 
@@ -2639,6 +2643,8 @@ export default function MessagesPage() {
 
                 type="submit"
 
+                disabled={!inputMessage.trim()||!blocksReady||chatBlocked||sending}
+                aria-label="Отправить сообщение"
                 className={styles.sendBtn}
 
               >

@@ -3,6 +3,19 @@
   flex-direction: column;
   gap: 20px;
 }
+.toolbar, .orderControls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.orderControls { justify-content: flex-end; margin: 8px 0 14px; }
+.playlistIcon { display: grid; place-items: center; min-height: 100px; font-size: 52px; color: #d8b4fe; background: linear-gradient(120deg, #68249a40, #dc598d30); border-radius: 12px; }
+.card { text-align: left; }
+.addList { max-height: 420px; overflow: auto; }
+.addRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--border-color); }
+.addRow small { display: block; color: var(--text-muted); margin-top: 4px; }
+.confirmBox { padding: 18px; border: 1px solid #de679a66; border-radius: 12px; }
+.confirmBox p { margin-bottom: 12px; }
+.container button:disabled { opacity: .45; cursor: default; }
+.modal { max-height: 85dvh; overflow: auto; }
+.nativeDialog { margin: auto; padding: 0; background: transparent; color: var(--text-main); border: 0; width: min(440px, calc(100vw - 32px)); max-width: none; }
+.nativeDialog::backdrop { background: #000b; backdrop-filter: blur(8px); }
 
 .header {
   display: flex;
@@ -47,12 +60,18 @@
 
 .tabsRow {
   display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  min-width: 0;
   gap: 10px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 10px;
 }
 
 .tabBtn {
+  flex: 0 0 auto;
+  white-space: nowrap;
   padding: 8px 16px;
   border-radius: var(--radius-full);
   background-color: rgba(255, 255, 255, 0.04);
@@ -299,3 +318,12 @@
   font-weight: 600;
   font-size: 13px;
 }
+.coverSettings { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
+.detailCover { width: 130px; }
+.coverActions { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.coverInput { display: block; max-width: 240px; font-size: 12px; padding-top: 8px; }
+.shareBox { padding: 16px; border: 1px solid var(--border-color); border-radius: 14px; }
+.shareBox p { margin: 8px 0 12px; }
+.copyStatus { overflow-wrap: anywhere; color: var(--accent-purple-light); }
+.cardTitle, .cardDesc { overflow-wrap: anywhere; }
+.container h2, .subtitle { overflow-wrap: anywhere; }

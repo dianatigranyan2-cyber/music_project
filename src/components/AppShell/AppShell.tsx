@@ -6,10 +6,14 @@ import { Navigation } from '../Navigation/Navigation';
 import { Header } from '../Header/Header';
 import { Player } from '../Player/Player';
 import { PlayerProvider, usePlayer } from '../../context/PlayerContext';
+import {BlockingProvider} from '../../context/BlockingContext';
 import { AuthProvider } from '../../context/AuthContext';
+import {MusicLibraryProvider} from '../../hooks/useMusicLibrary';
+import { PersonalMusicProvider } from '../../context/PersonalMusicContext';
 import { MessageNotificationsProvider } from '../../context/MessageNotificationsContext';
 import { SocialPresenceProvider } from '../../context/SocialPresenceContext';
-import { CURRENT_USER } from '../../data/mockData';
+import {FriendListeningProvider} from '../../context/FriendListeningContext';
+import {FriendListeningStatus} from '../Music/FriendListeningStatus';
 
 const InnerShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentTrack, searchQuery, setSearchQuery, handleNextTrack, handlePrevTrack } = usePlayer();
@@ -22,11 +26,13 @@ const InnerShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Main Viewport */}
       <div className={styles.mainContent}>
         <Header
-          fallbackUser={CURRENT_USER}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         />
-        <main className={styles.contentArea}>{children}</main>
+        <FriendListeningStatus/>
+        <main className={styles.contentArea}>
+          {children}
+        </main>
       </div>
 
       {/* Persistent Bottom Music Player */}
@@ -41,14 +47,18 @@ const InnerShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <AuthProvider>
+    <MusicLibraryProvider><AuthProvider>
+      <BlockingProvider><PersonalMusicProvider>
       <PlayerProvider>
+        <FriendListeningProvider>
         <SocialPresenceProvider>
           <MessageNotificationsProvider>
             <InnerShell>{children}</InnerShell>
           </MessageNotificationsProvider>
         </SocialPresenceProvider>
+        </FriendListeningProvider>
       </PlayerProvider>
-    </AuthProvider>
+      </PersonalMusicProvider></BlockingProvider>
+    </AuthProvider></MusicLibraryProvider>
   );
 };

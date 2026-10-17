@@ -9,7 +9,7 @@
 .storyCard {
   width: 100%;
   max-width: 380px;
-  height: 600px;
+  height: auto;
   background-color: var(--bg-card);
   border: 1px solid var(--border-accent);
   border-radius: var(--radius-lg);
@@ -153,7 +153,8 @@
 }
 
 .storyMedia {
-  flex: 1;
+  flex: none;
+  aspect-ratio: 9 / 16;
   position: relative;
   overflow: hidden;
 }
@@ -491,3 +492,8 @@
   }
 }
 
+
+.storyDetails { position: absolute; z-index: 12; bottom: 90px; left: 16px; right: 16px; display: flex; flex-direction: column; gap: 10px; color: white; pointer-events: auto; }
+.caption { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 150px; overflow: auto; padding: 10px; border-radius: 12px; background: #0007; text-shadow: 0 1px 3px black; }
+.storyDetails button { color: white; padding: 8px 12px; border-radius: 16px; background: #0008; text-align: left; }
+.editOption { width: 100%; color: white; padding: 10px 14px; text-align: left; background: transparent; }

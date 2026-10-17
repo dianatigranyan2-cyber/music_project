@@ -1,193 +1,106 @@
 'use client';
-
-import React, { useState } from 'react';
+import {useState} from 'react';
+import Link from 'next/link';
+import {usePersonalMusic} from '../../context/PersonalMusicContext';
+import {useMusicLibrary} from '../../hooks/useMusicLibrary';
+import {usePlayer} from '../../context/PlayerContext';
+import {MusicTracks} from '../../components/Music/MusicLists';
+import {PlaylistDialog} from '../../components/Music/PlaylistDialog';
+import {PlaylistCover} from '../../components/Music/PlaylistCover';
+import {SaveMusicButton} from '../../components/Music/SaveMusicButton';
+import {filterMusic} from '../../lib/musicLibrary';
+import {movePlaylistTrack} from '../../lib/personalMusic';
+import type {Track} from '../../types';
 import styles from './page.module.css';
-import { DEMO_TRACKS } from '../../data/mockData';
-import { usePlayer } from '../../context/PlayerContext';
 
-export default function PlaylistsPage() {
-  const { playTrack } = usePlayer();
-  const [activeTab, setActiveTab] = useState<'my' | 'shared' | 'favorites'>('my');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newDesc, setNewDesc] = useState('');
-
-  const [myPlaylists, setMyPlaylists] = useState([
-    {
-      id: 'p1',
-      title: 'Вайб для работы 💻',
-      desc: 'Синтвейв и лоу-фай для концентрации',
-      trackCount: 14,
-      coverUrl: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'p2',
-      title: 'Вечерний чилл 🌆',
-      desc: 'Медленные треки для отдыха после работы',
-      trackCount: 8,
-      coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&auto=format&fit=crop&q=80',
-    },
-  ]);
-
-  const handleCreatePlaylist = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle) return;
-    const newPl = {
-      id: `p_${Date.now()}`,
-      title: newTitle,
-      desc: newDesc || 'Мой новый плейлист',
-      trackCount: 0,
-      coverUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&auto=format&fit=crop&q=80',
-    };
-    setMyPlaylists([newPl, ...myPlaylists]);
-    setNewTitle('');
-    setNewDesc('');
-    setIsModalOpen(false);
-  };
-
-  return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerTitleRow}>
-          <div>
-            <h1 className={styles.title}>Мои плейлисты</h1>
-            <p className={styles.subtitle}>Коллекция любимых треков, совместных подборок и альбомов.</p>
-          </div>
-          <button className={styles.createBtn} onClick={() => setIsModalOpen(true)}>
-            + Создать плейлист
-          </button>
-        </div>
-      </header>
-
-      {/* Tabs */}
+export default function PlaylistsPage(){
+  const {data,signedIn,loading,busy,error,mutate,refresh,uploadCover}=usePersonalMusic();
+  const {library,error:catalogError,retry}=useMusicLibrary();
+  const {playTrack}=usePlayer();
+  const [tab,setTab]=useState<'my'|'favorites'|'recent'|'artists'|'albums'>('my');
+  const [copyStatus,setCopyStatus]=useState('');
+  const [selected,setSelected]=useState<string|null>(null);
+  const [form,setForm]=useState<{id:string;title:string;description:string;edit:boolean}|null>(null);
+  const [confirmDelete,setConfirmDelete]=useState(false);
+  const [query,setQuery]=useState('');
+  const playlist=data?.playlists.find(p=>p.id===selected);
+  const tracksById=new Map(library?.tracks.map(t=>[t.id,t]));
+  const resolve=(ids:string[])=>ids.map(id=>tracksById.get(id)).filter((t):t is Track=>!!t);
+  const favorites=resolve(data?.favoriteIds??[]);
+  const tracks=resolve(playlist?.trackIds??[]);
+  return <div className={styles.container}>
+    <header className={styles.headerTitleRow}><div><h1 className={styles.title}>Моя музыка</h1><p className={styles.subtitle}>Любимые песни и личные подборки.</p></div>
+      {signedIn&&<button className={styles.createBtn} disabled={loading||busy} onClick={()=>setForm({id:crypto.randomUUID(),title:'',description:'',edit:false})}>+ Создать плейлист</button>}
+    </header>
+    {!signedIn&&!loading?<p>Войдите, чтобы сохранять любимые песни и создавать плейлисты. <Link href="/login">Войти</Link></p>:<>
+      {loading&&<p role="status">Загрузка вашей музыки…</p>}
+      {error&&<p role="alert">{error} <button className={styles.cancelBtn} disabled={busy} onClick={refresh}>Повторить</button></p>}
+      {catalogError&&<p role="alert">{catalogError} <button className={styles.cancelBtn} onClick={retry}>Загрузить каталог</button></p>}
+      {!library&&!catalogError&&<p role="status">Загружаем каталог песен…</p>}
       <div className={styles.tabsRow}>
-        <button
-          className={`${styles.tabBtn} ${activeTab === 'my' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('my')}
-        >
-          Мои ({myPlaylists.length})
-        </button>
-        <button
-          className={`${styles.tabBtn} ${activeTab === 'shared' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('shared')}
-        >
-          Совместные (1)
-        </button>
-        <button
-          className={`${styles.tabBtn} ${activeTab === 'favorites' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('favorites')}
-        >
-          Любимые треки (4)
-        </button>
+        <button className={`${styles.tabBtn} ${tab==='my'?styles.activeTab:''}`} onClick={()=>{setTab('my');setSelected(null);}}>Мои плейлисты ({data?.playlists.length??0})</button>
+        <button className={`${styles.tabBtn} ${tab==='favorites'?styles.activeTab:''}`} onClick={()=>{setTab('favorites');setSelected(null);}}>Любимые треки ({data?.favoriteIds.length??0})</button>
+        <button className={`${styles.tabBtn} ${tab==='recent'?styles.activeTab:''}`} onClick={()=>{setTab('recent');setSelected(null);}}>Недавно прослушано</button>
+        <button className={`${styles.tabBtn} ${tab==='artists'?styles.activeTab:''}`} onClick={()=>{setTab('artists');setSelected(null);}}>Исполнители ({data?.savedArtistIds?.length??0})</button>
+        <button className={`${styles.tabBtn} ${tab==='albums'?styles.activeTab:''}`} onClick={()=>{setTab('albums');setSelected(null);}}>Альбомы ({data?.savedAlbumIds?.length??0})</button>
       </div>
-
-      {/* My Playlists */}
-      {activeTab === 'my' && (
-        <div className={styles.grid}>
-          {myPlaylists.map((pl) => (
-            <div key={pl.id} className={styles.card}>
-              <div className={styles.coverWrapper}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pl.coverUrl} alt={pl.title} className={styles.cover} />
-                <button
-                  className={styles.playBtn}
-                  onClick={() => playTrack(DEMO_TRACKS[0])}
-                  title="Воспроизвести"
-                >
-                  ▶
-                </button>
-              </div>
-              <h3 className={styles.cardTitle}>{pl.title}</h3>
-              <p className={styles.cardDesc}>{pl.desc}</p>
-              <span className={styles.trackCount}>{pl.trackCount} треков</span>
-            </div>
-          ))}
+      {tab==='favorites'&&<>{library&&!data?.favoriteIds.length&&<p>Нажмите ♡ у песни, чтобы добавить её сюда.</p>}<MusicTracks tracks={favorites}/>
+        {library&&data?.favoriteIds.filter(id=>!tracksById.has(id)).map(id=><p key={id}>Трек больше недоступен. <button className={styles.cancelBtn} disabled={busy} onClick={()=>mutate({action:'favorite',trackId:id,liked:false})}>Убрать из любимых</button></p>)}
+      </>}
+      {tab==='recent'&&<><h2>Недавно прослушано</h2><p className={styles.subtitle}>Недавно включённые песни.</p>
+        {!data?.history?.length&&<p>Включи песню — она появится здесь после начала воспроизведения.</p>}<MusicTracks tracks={resolve(data?.history?.map(h=>h.trackId)??[])}/></>}
+      {(tab==='artists'||tab==='albums')&&<div className={styles.grid}>
+        {(tab==='artists'?data?.savedArtistIds:data?.savedAlbumIds)?.map(id=>{
+          const item=tab==='artists'?library?.artists.find(a=>a.id===id):library?.albums.find(a=>a.id===id);
+          const title=item?('name'in item?item.name:item.title):'Больше недоступно';
+          return <article key={id} className={styles.card}>{item&&<Link href={`/music/${tab}/${id}`} className={styles.cardTitle}>{title}</Link>}
+            <SaveMusicButton id={id} kind={tab==='artists'?'artist':'album'}/></article>;
+        })}
+        {(tab==='artists'?!data?.savedArtistIds?.length:!data?.savedAlbumIds?.length)&&<p>Открой страницу {tab==='artists'?'исполнителя':'альбома'} и нажми «Сохранить».</p>}
+      </div>}
+      {tab==='my'&&!playlist&&<div className={styles.grid}>
+        {!loading&&data?.playlists.length===0&&<p>Создайте первую подборку и добавьте в неё музыку.</p>}
+        {data?.playlists.map(p=><button key={p.id} className={styles.card} onClick={()=>{setSelected(p.id);setQuery('');setConfirmDelete(false);}}>
+          <PlaylistCover tracks={resolve(p.trackIds)} src={p.coverUrl} title={p.title}/><span className={styles.cardTitle}>{p.title}</span><span className={styles.cardDesc}>{p.description}</span><span className={styles.trackCount}>Треков: {p.trackIds.length}</span>
+        </button>)}
+      </div>}
+      {tab==='my'&&playlist&&<>
+        <div className={styles.toolbar}><button className={styles.cancelBtn} onClick={()=>setSelected(null)}>← Все плейлисты</button>
+          <button className={styles.createBtn} disabled={!tracks.length} onClick={()=>playTrack(tracks[0],tracks)}>▶ Слушать</button>
+          <button className={styles.cancelBtn} disabled={busy} onClick={()=>setForm({id:playlist.id,title:playlist.title,description:playlist.description,edit:true})}>Изменить</button>
+          <button className={styles.cancelBtn} disabled={busy} onClick={()=>setConfirmDelete(true)}>Удалить плейлист</button></div>
+        <h2>{playlist.title}</h2><p className={styles.subtitle}>{playlist.description}</p>
+        <div className={styles.coverSettings}><div className={styles.detailCover}><PlaylistCover tracks={tracks} src={playlist.coverUrl} title={playlist.title}/></div><div className={styles.coverActions}>
+          <label className={styles.cancelBtn}>Загрузить обложку<input className={styles.coverInput} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} aria-label="Загрузить обложку плейлиста" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';if(file)void uploadCover(playlist.id,file);}}/></label>
+          <span className={styles.subtitle}>JPEG, PNG или WebP, до 5 МБ</span>
+          {playlist.coverPath&&<button className={styles.cancelBtn} disabled={busy} onClick={()=>mutate({action:'cover',playlistId:playlist.id,path:null})}>Автоматическая обложка</button>}
+        </div></div>
+        <div className={styles.shareBox}><strong>{playlist.shared?'Доступ по ссылке включён':'Личный плейлист'}</strong><p className={styles.subtitle}>{playlist.shared?'Любой, у кого есть ссылка, сможет открыть и слушать подборку.':'Подборка доступна только тебе.'}</p>
+          <div className={styles.toolbar}><button className={styles.cancelBtn} disabled={busy} onClick={async()=>{setCopyStatus('');await mutate({action:'sharing',playlistId:playlist.id,enabled:!playlist.shared});}}>{playlist.shared?'Закрыть доступ':'Включить доступ по ссылке'}</button>
+          {playlist.shared&&playlist.shareToken&&<><Link className={styles.cancelBtn} href={'/music/playlists/'+playlist.shareToken} target="_blank">Открыть ссылку</Link><button className={styles.cancelBtn} onClick={async()=>{const url=new URL('/music/playlists/'+playlist.shareToken,location.origin).href;try{await navigator.clipboard.writeText(url);setCopyStatus('Ссылка скопирована');}catch{setCopyStatus(url);}}}>Скопировать ссылку</button></>}
+          </div>{copyStatus&&<p className={styles.copyStatus} role="status">{copyStatus}</p>}
         </div>
-      )}
-
-      {/* Shared Playlists */}
-      {activeTab === 'shared' && (
-        <div className={styles.grid}>
-          <div className={styles.card}>
-            <div className={styles.coverWrapper}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300&auto=format&fit=crop&q=80"
-                alt="Совместный"
-                className={styles.cover}
-              />
-              <button className={styles.playBtn} onClick={() => playTrack(DEMO_TRACKS[1])}>
-                ▶
-              </button>
-            </div>
-            <h3 className={styles.cardTitle}>Ночной движ 🎧 (с Алиной)</h3>
-            <p className={styles.cardDesc}>Совместный плейлист, обновляемый вместе</p>
-            <span className={styles.trackCount}>22 трека</span>
+        {confirmDelete&&<div className={styles.confirmBox} role="alert"><p>Удалить «{playlist.title}»? Сами песни останутся в каталоге.</p><div className={styles.toolbar}><button className={styles.cancelBtn} disabled={busy} onClick={()=>setConfirmDelete(false)}>Отмена</button><button className={styles.submitBtn} disabled={busy} onClick={async()=>{if(await mutate({action:'delete',playlistId:playlist.id})){setSelected(null);setConfirmDelete(false);}}}>Подтвердить удаление</button></div></div>}
+        {!playlist.trackIds.length&&<p>В подборке пока нет песен. Добавьте их ниже.</p>}
+        {library&&playlist.trackIds.map((id,index)=>{const track=tracksById.get(id);return <section key={id}>
+          {track?<MusicTracks tracks={[track]} playbackCollection={tracks}/>:<p>Трек больше недоступен</p>}
+          <div className={styles.orderControls}>
+            <button className={styles.cancelBtn} disabled={busy||index===0} aria-label={`Выше: ${track?.title??'недоступный трек'}`} onClick={()=>mutate({action:'reorder',playlistId:playlist.id,trackIds:movePlaylistTrack(playlist.trackIds,id,-1)})}>↑</button>
+            <button className={styles.cancelBtn} disabled={busy||index===playlist.trackIds.length-1} aria-label={`Ниже: ${track?.title??'недоступный трек'}`} onClick={()=>mutate({action:'reorder',playlistId:playlist.id,trackIds:movePlaylistTrack(playlist.trackIds,id,1)})}>↓</button>
+            <button className={styles.cancelBtn} disabled={busy} onClick={()=>mutate({action:'remove',playlistId:playlist.id,trackId:id})}>Убрать из плейлиста</button>
           </div>
-        </div>
-      )}
-
-      {/* Favorites */}
-      {activeTab === 'favorites' && (
-        <div className={styles.favList}>
-          {DEMO_TRACKS.map((t, i) => (
-            <div key={t.id} className={styles.favRow} onClick={() => playTrack(t)}>
-              <span className={styles.favIdx}>{i + 1}</span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={t.coverUrl} alt={t.title} className={styles.favCover} />
-              <div className={styles.favMeta}>
-                <span className={styles.favTitle}>{t.title}</span>
-                <span className={styles.favArtist}>{t.artist}</span>
-              </div>
-              <button className={styles.favPlayIcon}>▶</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Create Playlist Modal */}
-      {isModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>Создать новый плейлист</h2>
-              <button className={styles.closeModalBtn} onClick={() => setIsModalOpen(false)}>
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleCreatePlaylist} className={styles.form}>
-              <label className={styles.label}>Название плейлиста</label>
-              <input
-                type="text"
-                placeholder="Например: Мой синтвейв..."
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                className={styles.input}
-                required
-              />
-              <label className={styles.label}>Описание (необязательно)</label>
-              <textarea
-                placeholder="Короткое описание плейлиста..."
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                className={styles.textarea}
-              />
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Отмена
-                </button>
-                <button type="submit" className={styles.submitBtn}>
-                  Создать
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+        </section>;})}
+        <h2>Добавить песни</h2><label htmlFor="playlist-search">Поиск по каталогу</label><input id="playlist-search" className={styles.input} placeholder="Название песни или исполнитель" value={query} onChange={e=>setQuery(e.target.value)}/>
+        <div className={styles.addList}>{filterMusic(library?.tracks??[],query).map(t=><div className={styles.addRow} key={t.id}><span>{t.title}<small>{t.artist}</small></span><button className={styles.cancelBtn} disabled={busy||playlist.trackIds.includes(t.id)} onClick={()=>mutate({action:'add',playlistId:playlist.id,trackId:t.id})}>{playlist.trackIds.includes(t.id)?'Добавлено ✓':'Добавить'}</button></div>)}</div>
+      </>}
+    </>}
+    {form&&<PlaylistDialog busy={busy} onClose={()=>setForm(null)}><div className={styles.modal}>
+      <h2 id="playlist-form-title">{form.edit?'Изменить плейлист':'Создать плейлист'}</h2>
+      <form className={styles.form} onSubmit={async e=>{e.preventDefault();if(await mutate({action:form.edit?'rename':'create',playlistId:form.id,title:form.title.trim(),description:form.description.trim()})){setSelected(form.id);setTab('my');setForm(null);}}}>
+        <label className={styles.label} htmlFor="playlist-title">Название</label><input autoFocus id="playlist-title" className={styles.input} required maxLength={100} value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/>
+        <label className={styles.label} htmlFor="playlist-description">Описание</label><textarea id="playlist-description" className={styles.textarea} maxLength={500} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/>
+        {error&&<p role="alert">{error}</p>}<div className={styles.modalActions}><button type="button" className={styles.cancelBtn} disabled={busy} onClick={()=>setForm(null)}>Отмена</button><button className={styles.submitBtn} disabled={busy||!form.title.trim()}>{busy?'Сохранение…':'Сохранить'}</button></div>
+      </form>
+    </div></PlaylistDialog>}
+  </div>;
 }

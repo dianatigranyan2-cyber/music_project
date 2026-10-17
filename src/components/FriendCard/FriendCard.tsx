@@ -1,16 +1,17 @@
 'use client';
 
 import React from 'react';
+import {useFriendListening} from '../../context/FriendListeningContext';
 import styles from './FriendCard.module.css';
-import { Friend, Track } from '../../types';
+import { Friend } from '../../types';
 
 interface FriendCardProps {
   friend: Friend;
-  onPlayTrack: (track: Track) => void;
-  isPlayingThisTrack?: boolean;
 }
 
-export const FriendCard: React.FC<FriendCardProps> = ({ friend, onPlayTrack, isPlayingThisTrack }) => {
+export const FriendCard: React.FC<FriendCardProps> = ({ friend }) => {
+  const {friends:activities,listeners,following,busy,follow,leave}=useFriendListening();const isPlayingThisTrack=following?.id===friend.id;
+  const listeningWithMe=listeners.some(listener=>listener.id===friend.id);
   return (
     <div className={`${styles.card} ${friend.currentTrack ? styles.hasMusic : ''}`}>
       {/* Top Bar: Avatar & Status */}
@@ -41,7 +42,7 @@ export const FriendCard: React.FC<FriendCardProps> = ({ friend, onPlayTrack, isP
       )}
 
       {/* Listening Status Area */}
-      {friend.currentTrack ? (
+      {friend.currentTrack&&!listeningWithMe ? (
         <div className={styles.listeningBox}>
           <div className={styles.trackInfo}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -69,15 +70,15 @@ export const FriendCard: React.FC<FriendCardProps> = ({ friend, onPlayTrack, isP
 
           <button
             className={`${styles.listenTogetherBtn} ${isPlayingThisTrack ? styles.activePlaying : ''}`}
-            onClick={() => friend.currentTrack && onPlayTrack(friend.currentTrack)}
+            disabled={busy||!activities.find(a=>a.id===friend.id)?.canJoin&&!isPlayingThisTrack} onClick={()=>void(isPlayingThisTrack?leave():follow(friend.id))}
           >
-            {isPlayingThisTrack ? '▶ Воспроизводится' : '🎧 Слушать вместе'}
+            {isPlayingThisTrack ? 'Отключиться' : activities.find(a=>a.id===friend.id)?.canJoin?'🎧 Слушать вместе':'Совместное прослушивание отключено'}
           </button>
         </div>
       ) : (
         <div className={styles.noMusicBox}>
-          <span className={styles.offlineText}>Сейчас ничего не слушает</span>
-          <button className={styles.shareMusicBtn}>Поделиться треком</button>
+          <span className={listeningWithMe?styles.withMe:styles.offlineText}>{listeningWithMe?'Слушает с вами':'Сейчас ничего не слушает'}</span>
+          {isPlayingThisTrack&&<button className={styles.shareMusicBtn} disabled={busy} onClick={()=>void leave()}>Отключиться</button>}
         </div>
       )}
     </div>

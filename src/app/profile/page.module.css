@@ -43,6 +43,12 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+.profileActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.privateBadge { width: fit-content; margin-top: 6px; font-size: 12px; padding: 5px 9px; border: 1px solid #c084fc45; border-radius: 20px; color: #dfbfff; background: #a855f715; }
+.lockedProfile { text-align: center; padding: 40px 20px; border: 1px solid var(--border-color); border-radius: 18px; background: var(--bg-card); }
+.lockedProfile > span { font-size: 34px; }
+.lockedProfile h2 { font-size: 19px; margin: 14px 0 8px; }
+.lockedProfile p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
 
 .name {
   font-size: 22px;
@@ -85,11 +91,13 @@
 
 .statsRow {
   display: flex;
+  flex-wrap: wrap;
   gap: 24px;
   margin-top: 10px;
 }
 
 .statItem {
+  text-decoration: none;
   display: flex;
   flex-direction: column;
 }
@@ -106,10 +114,22 @@
 }
 
 .section {
+  scroll-margin-top: 90px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
+
+.playlistCards { display: flex; gap: 16px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 2px 2px 12px; }
+.playlistCard { display: flex; flex-direction: column; flex: 0 0 190px; min-width: 0; gap: 10px; padding: 14px; border: 1px solid var(--border-color); border-radius: 16px; background: var(--bg-card); color: var(--text-main); text-align: left; scroll-snap-align: start; }
+.playlistCard:has([aria-pressed="true"]) { border-color: var(--accent-purple); }
+.playlistOpen { display: flex; flex-direction: column; gap: 10px; width: 100%; color: inherit; text-align: left; }
+.visibilityControl { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+.visibilityControl input { accent-color: var(--accent-purple); flex-shrink: 0; }
+.playlistCard strong, .playlistCard span { overflow-wrap: anywhere; }
+.playlistCard span, .playlistCard small { font-size: 12px; color: var(--text-muted); }
+.playlistHeading { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.playlistDetail { min-width: 0; }
 
 .sectionTitle {
   font-size: 18px;
@@ -140,6 +160,9 @@
 }
 
 .trackRow {
+  width: 100%;
+  text-align: left;
+  color: var(--text-main);
   display: flex;
   align-items: center;
   gap: 14px;
@@ -170,12 +193,14 @@
 }
 
 .meta {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
 .title {
+  overflow-wrap: anywhere;
   font-size: 13.5px;
   font-weight: 600;
   color: var(--text-main);
@@ -187,9 +212,14 @@
 }
 
 .timeAgo {
+  flex-shrink: 0;
+  max-width: 95px;
   font-size: 11px;
   color: var(--text-dim);
 }
+
+.trackRow:disabled { opacity: .5; cursor: default; }
+.trackRow:focus-visible, .statItem:focus-visible { outline: 2px solid #d8b4fe; outline-offset: 3px; }
 
 @media (max-width: 600px) {
   .profileHero {

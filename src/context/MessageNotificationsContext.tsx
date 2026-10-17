@@ -4,6 +4,7 @@ import {
   createContext, useCallback, useContext, useEffect, useEffectEvent,
   useMemo, useState,
 } from 'react';
+import {parseMusicMessage} from '../lib/musicMessages';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from './AuthContext';
 import { usePlayer } from './PlayerContext';
@@ -59,7 +60,7 @@ function IncomingMessageToasts({ userId, onUnreadCountChange }: {
       senderId: message.sender_id,
       senderName: sender?.display_name?.trim() || sender?.username || 'Пользователь',
       avatarUrl: sender?.avatar_url ?? null,
-      preview: messageToastPreview(message),
+      preview: parseMusicMessage(message.content) ? (parseMusicMessage(message.content)?.kind==='track'?'♫ Вам отправили трек':'♫ Вам отправили плейлист') : messageToastPreview(message),
       arrivalOrder,
     };
     setToasts((current) => appendMessageToast(current, toast));

@@ -19,6 +19,7 @@ export class AudioPlayback {
   private disposed = false;
   private state = { ...IDLE_PLAYBACK };
   private listeners: [string, EventListener][] = [];
+  private pendingSeek: number | null = null;
 
   constructor(
     private audio: HTMLAudioElement,
@@ -30,12 +31,19 @@ export class AudioPlayback {
       audio.addEventListener(event, callback);
     };
     const clock = () => this.publish({
-      currentTime: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
+      currentTime: this.pendingSeek ?? (Number.isFinite(audio.currentTime) ? audio.currentTime : 0),
       duration: Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : this.track?.duration ?? 0,
     });
     listen('timeupdate', clock);
     listen('durationchange', clock);
-    listen('loadedmetadata', clock);
+    listen('loadedmetadata', () => {
+      if (this.pendingSeek !== null) {
+        const target=this.pendingSeek;
+        this.pendingSeek=null;
+        this.seek(target);
+      }
+      clock();
+    });
     listen('playing', () => this.publish({ isPlaying: true, loading: false, error: null }));
     listen('pause', () => this.publish({ isPlaying: false }));
     listen('waiting', () => this.publish({ loading: true }));
@@ -53,7 +61,7 @@ export class AudioPlayback {
     this.state = { ...this.state, ...patch };
     this.onChange(this.state);
   }
-  select(track: Track): boolean {
+  select(track: Track, autoplay = true, startTime = 0): boolean {
     if (this.disposed) return false;
     if (!isPlayableTrack(track)) {
       this.publish({ error: 'Этот трек пока недоступен для прослушивания.' });
@@ -62,11 +70,14 @@ export class AudioPlayback {
     ++this.version;
     this.audio.pause();
     this.track = track;
+    this.pendingSeek = Number.isFinite(startTime) ? Math.max(0,Math.min(startTime,track.duration)) : 0;
+    if(this.pendingSeek===0)this.pendingSeek=null;
+    this.audio.preload = autoplay ? 'auto' : 'metadata';
     this.audio.src = track.streamUrl!;
     this.audio.load();
-    this.publish({ isPlaying: false, currentTime: 0, duration: track.duration, loading: true, error: null });
+    this.publish({ isPlaying: false, currentTime: this.pendingSeek ?? 0, duration: track.duration, loading: autoplay, error: null });
     // Called directly from a click to retain the browser's user activation.
-    this.play();
+    if(autoplay) this.play();
     return true;
   }
   play() {
@@ -92,7 +103,10 @@ export class AudioPlayback {
     if (!this.track || !Number.isFinite(seconds)) return;
     const duration = Number.isFinite(this.audio.duration) ? this.audio.duration : this.track.duration;
     try {
-      this.audio.currentTime = Math.max(0, Math.min(seconds, duration));
+      const target=Math.max(0, Math.min(seconds, duration));
+      if(this.audio.readyState===0){this.pendingSeek=target;this.publish({currentTime:target});return;}
+      this.audio.currentTime = target;
+      this.pendingSeek = null;
       this.publish({ currentTime: this.audio.currentTime });
     } catch { /* The stream may not be seekable yet. */ }
   }

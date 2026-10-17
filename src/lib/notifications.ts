@@ -28,6 +28,7 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 // Add a presenter here when introducing a new event. The database type is text,
 // so new kinds do not require changing an enum or rebuilding the inbox.
 const presenters = new Map<string, NotificationPresenter>([
+  ['music_listener_joined',()=>({icon:'🎧',text:'присоединяется к вашему прослушиванию',href:'/friends'})],
   ['story_like', ({ payload }) => ({
     icon: '❤️',
     text: 'нравится ваша история',

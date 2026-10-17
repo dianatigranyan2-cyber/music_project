@@ -13,13 +13,41 @@ function load(file, imports = {}) {
 const music = load('src/lib/musicPlayback.ts');
 const { filterMusic, mapLibrary } = load('src/lib/musicLibrary.ts');
 const { AudioPlayback } = load('src/lib/audioPlayback.ts', { './musicPlayback': music });
+const personal=load('src/lib/personalMusic.ts');
+const sessions=load('src/lib/playerSession.ts',{'./personalMusic':personal});
 const track = (id, artist = 'Kevin MacLeod') => ({ id, title: 'Carefree ' + id, artist, album: 'Сингл', source: 'library', streamUrl: 'https://example.com/' + id + '.mp3', duration: 205, genre: 'Инструментальная' });
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+test('personal actions reject malformed input and normalize playlist names',()=>{
+  assert.equal(personal.parsePersonalMusicAction({action:'favorite',trackId:id(1),liked:'true'}),null);
+  assert.equal(personal.parsePersonalMusicAction({action:'create',playlistId:id(1),title:' ',description:''}),null);
+  assert.equal(personal.parsePersonalMusicAction({action:'reorder',playlistId:id(1),trackIds:[id(2),id(2)]}),null);
+  assert.equal(personal.parsePersonalMusicAction({action:'add',playlistId:'bad',trackId:id(2)}),null);
+  assert.equal(personal.parsePersonalMusicAction({action:'create',playlistId:id(1),title:' Мой вечер ',description:''}).title,'Мой вечер');
+  assert.deepEqual(personal.parsePersonalMusicAction({action:'profile-visibility',playlistId:id(1),enabled:true}),{action:'profile-visibility',playlistId:id(1),enabled:true});
+  assert.deepEqual(personal.parsePersonalMusicAction({action:'profile-visibility',playlistId:id(1),enabled:false}),{action:'profile-visibility',playlistId:id(1),enabled:false});
+  assert.equal(personal.parsePersonalMusicAction({action:'profile-visibility',playlistId:id(1),enabled:'false'}),null);
+  assert.equal(personal.parsePersonalMusicAction({action:'profile-visibility',playlistId:'invalid',enabled:true}),null);
+  assert.deepEqual(personal.movePlaylistTrack([id(1),id(2),id(3)],id(2),-1),[id(2),id(1),id(3)]);
+  assert.deepEqual(personal.movePlaylistTrack([id(1),id(2)],id(1),-1),[id(1),id(2)]);
+});
+test('saved player state rejects corruption and resolves IDs using the current catalog only',()=>{
+  assert.equal(sessions.parsePlayerSession('{broken'),null);
+  assert.equal(sessions.parsePlayerSession('{"version":2}'),null);
+  const parsed=sessions.parsePlayerSession(JSON.stringify({version:1,trackId:id(1),queueIds:[id(1),id(2),id(1),'bad'],originalQueueIds:[],volume:200,currentTime:900,streamUrl:'https://untrusted.example/file',muted:'true'}));
+  assert.equal(parsed.volume,100);assert.equal(parsed.muted,false);assert.equal(parsed.streamUrl,undefined);
+  const resolved=sessions.resolvePlayerSession(parsed,[track(id(1))]);
+  assert.equal(resolved.track.streamUrl,track(id(1)).streamUrl);assert.equal(resolved.currentTime,205);
+  assert.deepEqual(resolved.queue.map(t=>t.id),[id(1)]);assert.deepEqual(resolved.original.map(t=>t.id),[id(1)]);
+  const fallback=sessions.resolvePlayerSession({...parsed,queueIds:[id(2)]},[track(id(2))]);
+  assert.equal(fallback.track.id,id(2));assert.equal(fallback.currentTime,0);
+});
 
 test('search includes all words and applies actual artist and genre filters', () => {
   const a = track('a'), b = { ...track('b', 'Chris Zabriskie'), title: 'Cylinder One', genre: 'Эмбиент', album: 'Cylinders' };
   assert.deepEqual(filterMusic([a,b], ' KEVIN  carefree '), [a]);
   assert.deepEqual(filterMusic([a,b], 'cylinders'), [b]);
   assert.deepEqual(filterMusic([a,b], 'Kevin', 'Эмбиент'), []);
+  assert.equal(filterMusic([{...a,title:'Возьмёмся за руки'}],'возьмемся руки').length,1);
 });
 test('queue excludes prototypes, keeps selected track, and does not wrap after last song', () => {
   const a = track('a'), b = track('b');
@@ -46,6 +74,16 @@ class FakeAudio extends EventTarget {
   load() {}
   removeAttribute() { this.src = ''; }
 }
+test('restoring a song stays paused and applies position after metadata arrives',()=>{
+  const audio=new FakeAudio();audio.readyState=0;let state;
+  const engine=new AudioPlayback(audio,value=>state=value);
+  engine.select(track('restored'),false,73);
+  assert.equal(audio.paused,true);assert.equal(state.currentTime,73);
+  audio.dispatchEvent(new Event('timeupdate'));assert.equal(state.currentTime,73);
+  audio.readyState=1;audio.dispatchEvent(new Event('loadedmetadata'));
+  assert.equal(audio.currentTime,73);assert.equal(state.currentTime,73);assert.equal(audio.paused,true);
+  engine.dispose();
+});
 test('native audio events control time, pause, seeking, repeat and ending', () => {
   const audio = new FakeAudio(); let state; let ended = 0;
   const engine = new AudioPlayback(audio, value => state = value, () => ended++);
@@ -75,10 +113,12 @@ test('old rejected play promises cannot interrupt a newer song', async () => {
 });
 test('catalogue retains the initial collection and links Russian vocals to their own licence and performer', () => {
   const library = JSON.parse(readFileSync(new URL('../music/library.json', import.meta.url), 'utf8'));
-  assert.equal(library.tracks.filter(t=>t.licenseCode==='CC-BY-4.0').length, 24);
+  assert.equal(library.tracks.filter(t=>t.artist==='Kevin MacLeod'||t.artist==='Chris Zabriskie').length,24);
   assert.equal(new Set(library.tracks.map(t => t.id)).size, library.tracks.length);
   const vocals = library.tracks.filter(t=>t.language==='ru' && t.hasVocals);
-  assert.equal(vocals.length, 6);
+  assert.equal(vocals.filter(t=>t.artist==='Sector 516').length,6);
+  assert.equal(vocals.filter(t=>t.artist==='Любовный скотч').length,8);
+  assert.ok(!library.tracks.some(t=>t.title.includes('Частушки')));
   assert.equal(filterMusic(library.tracks, 'кто-то рядом')[0].artist, 'Sector 516');
   for (const t of library.tracks) {
     assert.equal(t.artist, library.artists.find(a => a.id === t.artistId)?.name);

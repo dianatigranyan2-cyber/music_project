@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
+import { PasswordInput } from '../../components/Auth/PasswordInput';
+import { passwordProblem } from '../../lib/passwords';
 import { useAuth } from '../../context/AuthContext';
 
 export default function RegisterPage() {
@@ -13,6 +15,7 @@ export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -46,8 +49,9 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Пароль должен быть не менее 6 символов');
+    const problem = passwordProblem(password, confirmation);
+    if (problem) {
+      setError(problem);
       return;
     }
 
@@ -112,9 +116,10 @@ export default function RegisterPage() {
           </div>
 
           <div className={styles.fieldGroup}>
-            <label className={styles.label}>Пароль</label>
-            <input
-              type="password"
+            <label className={styles.label} htmlFor="password">Пароль</label>
+            <PasswordInput
+              id="password"
+              autoComplete="new-password"
               placeholder="Минимум 6 символов"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -123,6 +128,10 @@ export default function RegisterPage() {
             />
           </div>
 
+          <div className={styles.fieldGroup}>
+            <label className={styles.label} htmlFor="password-confirmation">Повторите пароль</label>
+            <PasswordInput id="password-confirmation" placeholder="Повторите пароль" autoComplete="new-password" value={confirmation} onChange={event=>setConfirmation(event.target.value)} className={styles.input} required/>
+          </div>
           <button type="submit" className={styles.submitBtn} disabled={loading}>
             {loading ? 'Создание аккаунта...' : 'Зарегистрироваться'}
           </button>

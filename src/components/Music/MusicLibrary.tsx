@@ -6,6 +6,8 @@ import { useMusicLibrary } from '../../hooks/useMusicLibrary';
 import { filterMusic } from '../../lib/musicLibrary';
 import { MusicTracks } from './MusicLists';
 import styles from './MusicLibrary.module.css';
+import {SaveMusicButton} from './SaveMusicButton';
+import {MUSIC_MOODS,moodTracks} from '../../lib/musicFeatures';
 
 export function MusicLibrary({ artistId, albumId, compact = false }: { artistId?: string; albumId?: string; compact?: boolean }) {
   const { library, error, retry } = useMusicLibrary();
@@ -15,7 +17,7 @@ export function MusicLibrary({ artistId, albumId, compact = false }: { artistId?
   if (!library) return <p className={styles.container} role="status">Загружаем библиотеку…</p>;
   const artist = library.artists.find(item => item.id === artistId);
   const album = library.albums.find(item => item.id === albumId);
-  if ((artistId && !artist) || (albumId && !album)) return <section className={styles.container}><h1>Музыка не найдена</h1><Link href="/explore">Открыть библиотеку</Link></section>;
+  if ((artistId && !artist) || (albumId && !album)) return <section className={styles.container}><h1>Музыка не найдена</h1><Link href="/#music">Открыть библиотеку</Link></section>;
   const collection = library.tracks.filter(track => (!artistId || track.artistId === artistId) && (!albumId || track.albumId === albumId));
   if (albumId) collection.sort((a, b) => (a.trackNumber ?? 0) - (b.trackNumber ?? 0));
   else collection.sort((a, b) => a.title.localeCompare(b.title));
@@ -28,11 +30,15 @@ export function MusicLibrary({ artistId, albumId, compact = false }: { artistId?
   return <section className={styles.container}>
     <header className={styles.heading}><div>{compact ? <h2>{title}</h2> : <h1>{title}</h1>}
       <p>{album ? `${library.artists.find(a => a.id === album.artistId)?.name} · ${album.year}` : artist ? 'Все песни исполнителя в библиотеке Melo' : 'Независимая музыка — слушайте прямо здесь'}</p></div>
-      {compact ? <Link className={styles.button} href="/explore">Вся музыка →</Link> : <Link href="/explore">Библиотека</Link>}
+      {compact ? <Link className={styles.button} href="/#music">Вся музыка →</Link> : artistId || albumId ? <Link href="/#music">Библиотека</Link> : <Link className={styles.myMusicButton} href="/playlists"><span className={styles.myMusicIcon} aria-hidden="true">♫</span><span>Моя музыка</span><span className={styles.myMusicArrow} aria-hidden="true">→</span></Link>}
+      {artistId&&<SaveMusicButton id={artistId} kind="artist"/>}{albumId&&<SaveMusicButton id={albumId} kind="album"/>}
     </header>
     {!compact && !albumId && <div className={styles.genres} aria-label="Жанры">
       {['', ...new Set(collection.map(t => t.genre).filter(Boolean))].map(g => <button key={g} aria-pressed={genre === g} className={genre === g ? styles.selected : ''} onClick={() => setGenre(g ?? '')}>{g || 'Все жанры'}</button>)}
     </div>}
+    {!compact&&!artistId&&!albumId&&!searchQuery.trim()&&<section><h2>Подборки по настроению</h2><div className={styles.cards}>
+      {MUSIC_MOODS.map(m=><Link key={m.id} href={'/music/moods/'+m.id} className={styles.card} style={{background:`linear-gradient(130deg,${m.colors[0]}55,${m.colors[1]}25)`}}><strong>{m.title}</strong><span>{m.description}</span><span>Треков: {moodTracks(m.id,library.tracks).length}</span></Link>)}
+    </div></section>}
     {!compact && !artistId && !albumId && visibleArtists.length > 0 && <section><h2>Исполнители</h2><div className={styles.cards}>
       {visibleArtists.map(a => <Link className={styles.card} key={a.id} href={'/music/artists/' + a.id} onClick={() => setSearchQuery('')}><span className={styles.artistIcon}>♪</span><strong>{a.name}</strong><span>{library.tracks.filter(t => t.artistId === a.id).length} треков</span></Link>)}
     </div></section>}
@@ -43,6 +49,6 @@ export function MusicLibrary({ artistId, albumId, compact = false }: { artistId?
       {tracks.length > 0 && <button className={styles.button} onClick={() => playTrack(tracks[0], tracks)}>▶ Слушать всё</button>}
     </div>
     {tracks.length ? <MusicTracks tracks={compact ? tracks.slice(0, 6) : tracks} /> : <p role="status">{library.tracks.length ? 'Ничего не найдено. Попробуйте другое название или исполнителя.' : 'В библиотеке пока нет опубликованных треков.'}</p>}
-    <p className={styles.footer}>Музыка доступна по свободным лицензиям. Авторы, источники и условия указаны у каждого трека.</p>
+    <p className={styles.footer}><Link href="/music/credits">Авторы и лицензии</Link></p>
   </section>;
 }

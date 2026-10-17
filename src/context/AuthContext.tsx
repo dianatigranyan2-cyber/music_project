@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { createClient } from '../lib/supabase/client';
 
@@ -11,6 +11,7 @@ export interface Profile {
   bio?: string | null;
   avatar_url?: string | null;
   created_at?: string;
+  is_private?: boolean;
 }
 
 interface AuthContextType {
@@ -28,6 +29,7 @@ interface AuthContextType {
     display_name?: string | null;
     bio?: string | null;
     avatar_url?: string | null;
+    is_private?: boolean;
   }) => Promise<{ error?: string }>;
   uploadAvatar: (file: File) => Promise<{ url?: string; error?: string }>;
 }
@@ -41,26 +43,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string, fallbackUsername?: string) => {
+  const fetchProfile = useCallback(async (userId: string, fallbackUsername?: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase.rpc('account_profile');
 
-      if (!error && data) {
+      if (!error && data?.id === userId) {
         setProfile(data as Profile);
-      } else if (fallbackUsername) {
+      } else if (!error && !data && fallbackUsername) {
         // Fallback: If authenticated user exists but profile row missing, insert now
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
           .upsert({ id: userId, username: fallbackUsername }, { onConflict: 'id' })
-          .select()
+          .select('id')
           .single();
 
         if (!insertError && newProfile) {
-          setProfile(newProfile as Profile);
+          const result = await supabase.rpc('account_profile');
+          setProfile(!result.error && result.data?.id === userId ? result.data as Profile : null);
         } else {
           setProfile(null);
         }
@@ -70,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       setProfile(null);
     }
-  };
+  }, [supabase]);
 
   const refreshProfile = async () => {
     if (user?.id) {
@@ -102,16 +101,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     display_name?: string | null;
     bio?: string | null;
     avatar_url?: string | null;
+    is_private?: boolean;
   }) => {
     if (!user?.id) return { error: 'Вы не авторизованы' };
 
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('update_account_profile', { p_updates: updates });
 
       if (error) {
         const errLower = error.message.toLowerCase();
@@ -126,9 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: error.message };
       }
 
-      if (data) {
+      if (data?.id === user.id) {
         setProfile(data as Profile);
-      }
+      } else return { error: 'Не удалось подтвердить сохранение профиля. Попробуйте ещё раз.' };
 
       return {};
     } catch (err: unknown) {
@@ -219,7 +214,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, fetchProfile]);
 
   const signUp = async (email: string, password: string, username: string) => {
     try {
@@ -272,7 +267,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     setUser(null);
     setSession(null);
     setProfile(null);
