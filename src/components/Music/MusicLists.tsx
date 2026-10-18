@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
 import Link from 'next/link';
 import type { Track } from '../../types';
 import { usePlayer } from '../../context/PlayerContext';
@@ -13,9 +14,9 @@ export function MusicTracks({ tracks, playbackCollection=tracks }: { tracks: Tra
   const { listeningControl, playTrack, currentTrack, isPlaying, togglePlayback, setSearchQuery } = usePlayer();
   return <div className={styles.list}>
     {tracks.map(track => <article className={`${styles.row} ${currentTrack.id === track.id ? styles.active : ''}`} key={track.id}>
-      <button className={styles.trackButton} aria-label={`Слушать: ${track.title}`} aria-pressed={currentTrack.id === track.id && isPlaying} disabled={!!listeningControl&&currentTrack.id!==track.id}
+      <button data-track-drag-handle className={styles.trackButton} aria-label={`Слушать: ${track.title}`} aria-pressed={currentTrack.id === track.id && isPlaying} disabled={!!listeningControl&&currentTrack.id!==track.id}
         onClick={() => currentTrack.id === track.id ? togglePlayback() : playTrack(track, playbackCollection)}>
-        <MusicImage src={track.coverUrl} /><span className={styles.title}>{track.title}</span><span aria-hidden="true">{currentTrack.id === track.id && isPlaying ? '⏸' : '▶'}</span>
+        <MusicImage src={track.coverUrl} /><span className={styles.title}>{track.title}</span><AppIcon name={currentTrack.id === track.id && isPlaying ? 'pause' : 'play'}/>
       </button>
       <div className={styles.trackDetails}>
         <Link href={'/music/artists/' + track.artistId} onClick={() => setSearchQuery('')}>{track.artist}</Link>

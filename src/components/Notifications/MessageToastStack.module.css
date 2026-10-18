@@ -51,7 +51,7 @@
   background: rgba(139, 92, 246, 0.06);
 }
 
-.message:focus-visible,
+.copy:focus-visible,
 .close:focus-visible {
   outline: 2px solid var(--accent-purple-light);
   outline-offset: 3px;
@@ -80,6 +80,7 @@
 }
 
 .messageIcon {
+  pointer-events: none;
   position: absolute;
   bottom: -3px;
   right: -5px;
@@ -94,6 +95,10 @@
 }
 
 .copy {
+  flex: 1;
+  align-items: flex-start;
+  text-align: left;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   gap: 4px;

@@ -3,8 +3,16 @@
   flex-direction: column;
   gap: 20px;
 }
-.toolbar, .orderControls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.orderControls { justify-content: flex-end; margin: 8px 0 14px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.playlistHeading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.playlistHeading h1 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.backBtn, .options summary { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; color: var(--text-main); background: #ffffff0d; cursor: pointer; font-size: 22px; }
+.options { position: relative; flex-shrink: 0; }
+.options summary { list-style: none; }
+.options summary::-webkit-details-marker { display: none; }
+.options summary:focus-visible, .backBtn:focus-visible { outline: 2px solid var(--accent-purple-light); outline-offset: 3px; }
+.optionsMenu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 325; width: min(320px, calc(100vw - 32px)); padding: 12px; border-radius: 14px; border: 1px solid var(--border-accent); background: #1a1930; box-shadow: 0 12px 32px #0008; display: flex; flex-direction: column; gap: 8px; max-height: 65dvh; overflow-y: auto; }
+.optionsMenu > button { text-align: left; }
 .playlistIcon { display: grid; place-items: center; min-height: 100px; font-size: 52px; color: #d8b4fe; background: linear-gradient(120deg, #68249a40, #dc598d30); border-radius: 12px; }
 .card { text-align: left; }
 .addList { max-height: 420px; overflow: auto; }
@@ -318,10 +326,6 @@
   font-weight: 600;
   font-size: 13px;
 }
-.coverSettings { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
-.detailCover { width: 130px; }
-.coverActions { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
-.coverInput { display: block; max-width: 240px; font-size: 12px; padding-top: 8px; }
 .shareBox { padding: 16px; border: 1px solid var(--border-color); border-radius: 14px; }
 .shareBox p { margin: 8px 0 12px; }
 .copyStatus { overflow-wrap: anywhere; color: var(--accent-purple-light); }

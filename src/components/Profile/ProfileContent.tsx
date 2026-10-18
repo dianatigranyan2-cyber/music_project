@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../Icons/AppIcon';
 
 import {BlockUser} from './BlockUser';
 import {Avatar} from './Avatar';
@@ -35,7 +36,7 @@ export function ProfileContent({ profile, music, friendCount, loading, error, re
   return <div className={styles.container}>
     <div className={styles.profileHero}>
       <div className={styles.avatarWrapper}>
-        <Avatar src={profile.avatar_url} alt={displayName} className={styles.avatar}/>
+        <Avatar username={profile.username} ownProfile={isOwner} src={profile.avatar_url} alt={displayName} className={styles.avatar}/>
       </div>
       <div className={styles.profileMeta}>
         <div className={styles.headerTop}><div><h1 className={styles.name}>{displayName}</h1><span className={styles.handle}>{profile.username ? '@' + profile.username : ''}</span></div>{isOwner && <div className={styles.profileActions}><Link href="/settings#profile-details" className={styles.editBtn}>✏️ Редактировать профиль</Link><Link href="/settings" className={styles.editBtn}>⚙️ Настройки</Link></div>}</div>
@@ -67,7 +68,7 @@ export function ProfileContent({ profile, music, friendCount, loading, error, re
           {isOwner && <label className={styles.visibilityControl}><input type="checkbox" checked={!!item.showOnProfile} disabled={visibilityBusy} aria-label={'Показывать в профиле: ' + item.title} onChange={event => { void onVisibilityChange?.(item.id, event.currentTarget.checked); }}/>Показывать в профиле</label>}
         </article>)}</div>
         {playlist && <div className={styles.playlistDetail}><div className={styles.playlistHeading}><h3>{playlist.title}</h3><button className={styles.editBtn} aria-label="Закрыть список песен плейлиста" onClick={() => setSelectedId(null)}>✕</button>
-          <button className={styles.editBtn} disabled={!playlistTracks.length || !!listeningControl} onClick={() => playTrack(playlistTracks[0], playlistTracks)}>▶ Слушать плейлист</button></div>
+          <button className={styles.editBtn} disabled={!playlistTracks.length || !!listeningControl} onClick={() => playTrack(playlistTracks[0], playlistTracks)}><AppIcon name="play" size={18}/> Слушать плейлист</button></div>
           {playlistTracks.length ? <MusicTracks tracks={playlistTracks}/> : <p>В плейлисте пока нет доступных песен.</p>}
         </div>}
       </>}

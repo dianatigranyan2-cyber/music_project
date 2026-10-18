@@ -29,22 +29,20 @@ function MessageToastCard({ toast, onDismiss, onOpen }: {
       role="status"
       aria-atomic="true"
     >
-      <button
-        type="button"
-        className={styles.message}
-        onClick={() => onOpen(toast)}
-        aria-label={`Открыть диалог с ${toast.senderName}: ${toast.preview}`}
-      >
+      <div className={styles.message}>
         <span className={styles.avatar}>
-          <Avatar src={toast.avatarUrl} alt=""/>
+          <Avatar username={toast.senderUsername} src={toast.avatarUrl} alt={toast.senderName}
+            onProfileOpen={() => onDismiss(toast.id)}/>
           <span className={styles.messageIcon}><AppIcon name="messages" size={12}/></span>
         </span>
-        <span className={styles.copy}>
+        <button type="button" className={styles.copy}
+          onClick={() => onOpen(toast)}
+          aria-label={`Открыть диалог с ${toast.senderName}: ${toast.preview}`}>
           <span className={styles.label}>Новое сообщение</span>
           <strong className={styles.name}>{toast.senderName}</strong>
           <span className={styles.preview}>{toast.preview}</span>
-        </span>
-      </button>
+        </button>
+      </div>
       <button
         type="button"
         className={styles.close}

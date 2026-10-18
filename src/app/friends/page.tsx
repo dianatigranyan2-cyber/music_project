@@ -614,6 +614,7 @@ function FriendsPageContent() {
                     <div key={friend.id} className={styles.friendRow}>
                       <div className={styles.avatarWrapper}>
                         <Avatar
+                          username={friend.username}
                           src={friendAvatar}
                           alt={friendName}
                           className={styles.avatar}
@@ -714,6 +715,7 @@ function FriendsPageContent() {
                         <div key={req.id} className={styles.pendingCardRow}>
                           <div className={styles.avatarWrapper}>
                             <Avatar
+                              username={req.receiver?.username}
                               src={receiverAvatar}
                               alt={receiverName}
                               className={styles.avatar}
@@ -781,6 +783,7 @@ function FriendsPageContent() {
               return (
                 <div key={req.id} className={styles.requestCard}>
                   <Avatar
+                    username={req.sender.username}
                     src={senderAvatar}
                     alt={senderName}
                     className={styles.avatar}
@@ -875,7 +878,7 @@ function FriendsPageContent() {
               return (
                 <div key={userResult.id} className={styles.friendRow}>
                   <div className={styles.avatarWrapper}>
-                    <Avatar src={avatar} alt={displayName} className={styles.avatar} />
+                    <Avatar username={userResult.username} src={avatar} alt={displayName} className={styles.avatar} />
                   </div>
 
                   <div className={styles.friendInfo}>

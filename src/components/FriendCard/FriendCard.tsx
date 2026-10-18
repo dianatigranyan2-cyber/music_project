@@ -18,7 +18,7 @@ export const FriendCard: React.FC<FriendCardProps> = ({ friend }) => {
       {/* Top Bar: Avatar & Status */}
       <div className={styles.header}>
         <div className={styles.avatarWrapper}>
-          <Avatar src={friend.avatarUrl} alt={friend.name} className={styles.avatar} />
+          <Avatar username={friend.username} src={friend.avatarUrl} alt={friend.name} className={styles.avatar} />
           <span className={`${styles.onlineDot} ${friend.isOnline ? styles.online : styles.offline}`} />
         </div>
 

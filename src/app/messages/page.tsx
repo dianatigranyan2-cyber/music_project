@@ -4,11 +4,11 @@ import { AppIcon } from '../../components/Icons/AppIcon';
 
 
 
-import {MusicMessageCard} from '../../components/Messages/MusicMessageCard';
-import {MusicMessagePicker} from '../../components/Messages/MusicMessagePicker';
-import {parseMusicMessage} from '../../lib/musicMessages';
-import {useBlocking} from '../../context/BlockingContext';
-import {ChatActions} from '../../components/Messages/ChatActions';
+import { MusicMessageCard } from '../../components/Messages/MusicMessageCard';
+import { MusicMessagePicker } from '../../components/Messages/MusicMessagePicker';
+import { parseMusicMessage } from '../../lib/musicMessages';
+import { useBlocking } from '../../context/BlockingContext';
+import { ChatActions } from '../../components/Messages/ChatActions';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import Link from 'next/link';
@@ -170,11 +170,11 @@ const getDateLabel = (dateString: string) => {
 
 
 
-export default function MessagesPage(){
-  const {user,loading}=useAuth();
-  if(loading)return <p role="status">Загружаем сообщения…</p>;
-  if(!user)return <p>Войдите, чтобы открыть сообщения. <Link href="/login">Войти</Link></p>;
-  return <MessagesSessionPage key={user.id}/>;
+export default function MessagesPage() {
+  const { user, loading } = useAuth();
+  if (loading) return <p role="status">Загружаем сообщения…</p>;
+  if (!user) return <p>Войдите, чтобы открыть сообщения. <Link href="/login">Войти</Link></p>;
+  return <MessagesSessionPage key={user.id} />;
 }
 function MessagesSessionPage() {
 
@@ -191,12 +191,12 @@ function MessagesSessionPage() {
   const { isTyping, updateTyping, stopTyping } = useTypingIndicator(currentUser?.id ?? null, selectedChatId);
 
   const [inputMessage, setInputMessage] = useState('');
-  const {data:blocks,ready:blocksReady}=useBlocking();
-  const chatBlocked=!!selectedChatId&&!!blocks?.peerIds.includes(selectedChatId);
-  const [musicPickerFor,setMusicPickerFor]=useState<string|null>(null);
-  const [sending,setSending]=useState(false);
-  const sendingRef=useRef(false);
-  const [sendError,setSendError]=useState('');
+  const { data: blocks, ready: blocksReady } = useBlocking();
+  const chatBlocked = !!selectedChatId && !!blocks?.peerIds.includes(selectedChatId);
+  const [musicPickerFor, setMusicPickerFor] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
+  const [sendError, setSendError] = useState('');
 
   const [chatHistories, setChatHistories] = useState<
 
@@ -213,7 +213,7 @@ function MessagesSessionPage() {
   const pendingStoryIdsRef = useRef<Set<string>>(new Set());
   const storyRetryTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const storiesMapRef = useRef(storiesMap);
-  useEffect(()=>{storiesMapRef.current=storiesMap;},[storiesMap]);
+  useEffect(() => { storiesMapRef.current = storiesMap; }, [storiesMap]);
 
   // Context menu state: which message id + position
 
@@ -330,8 +330,8 @@ function MessagesSessionPage() {
   }, [currentUser, chatHistories, fetchStorySnippets]);
 
   useEffect(() => {
-    const timers=storyRetryTimersRef.current;const pending=pendingStoryIdsRef.current;
-    return () => {timers.forEach(timer=>clearTimeout(timer));timers.clear();pending.clear();};
+    const timers = storyRetryTimersRef.current; const pending = pendingStoryIdsRef.current;
+    return () => { timers.forEach(timer => clearTimeout(timer)); timers.clear(); pending.clear(); };
   }, []);
 
   // Inline edit state
@@ -708,8 +708,8 @@ function MessagesSessionPage() {
 
 
 
-      const {data:pastMessages}=await supabase.from('messages').select('sender_id,receiver_id').or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
-      for(const message of pastMessages??[]){const peer=message.sender_id===currentUser.id?message.receiver_id:message.sender_id;if(!friendIds.includes(peer))friendIds.push(peer);}
+      const { data: pastMessages } = await supabase.from('messages').select('sender_id,receiver_id').or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+      for (const message of pastMessages ?? []) { const peer = message.sender_id === currentUser.id ? message.receiver_id : message.sender_id; if (!friendIds.includes(peer)) friendIds.push(peer); }
       if (friendIds.length === 0) {
 
         setFriends([]);
@@ -1595,121 +1595,121 @@ function MessagesSessionPage() {
 
 
     if (!content || !selectedChatId || !currentUser || !blocksReady || chatBlocked || sendingRef.current) return false;
-    sendingRef.current=true;setSending(true);setSendError('');
+    sendingRef.current = true; setSending(true); setSendError('');
     try {
-    stopTyping();
+      stopTyping();
 
 
 
-    const { data, error } = await supabase
+      const { data, error } = await supabase
 
-      .from('messages')
+        .from('messages')
 
-      .insert({
+        .insert({
 
-        sender_id: currentUser.id,
+          sender_id: currentUser.id,
 
-        receiver_id: selectedChatId,
+          receiver_id: selectedChatId,
 
-        content,
+          content,
 
-      })
+        })
 
-      .select(
+        .select(
 
-        'id, sender_id, receiver_id, content, created_at, read_at, edited_at, story_id, is_story_reply')
+          'id, sender_id, receiver_id, content, created_at, read_at, edited_at, story_id, is_story_reply')
 
-      .single();
-
-
-
-    if (error) {
-
-      setSendError('Сообщение не отправлено. Проверьте подключение, дружбу с получателем и блокировки.');
-
-      return false;
-
-    }
+        .single();
 
 
 
-    const newMessage: Message = {
+      if (error) {
 
-      id: data.id,
+        setSendError('Сообщение не отправлено. Проверьте подключение, дружбу с получателем и блокировки.');
 
-      sender: 'me',
-
-      text: data.content,
-
-      time: new Date(data.created_at).toLocaleTimeString([], {
-
-        hour: '2-digit',
-
-        minute: '2-digit',
-
-      }),
-
-      created_at: data.created_at,
-
-      read_at: data.read_at,
-
-      edited_at: data.edited_at ?? null,
-
-      story_id: data.story_id ?? null,
-
-      is_story_reply: data.is_story_reply ?? false,
-
-    };
-
-
-
-    setChatHistories((prev) => {
-
-      const currentMessages = prev[selectedChatId] || [];
-
-
-
-      if (
-
-        currentMessages.some(
-
-          (message) => message.id === newMessage.id
-
-        )
-
-      ) {
-
-        return prev;
+        return false;
 
       }
 
 
 
-      return {
+      const newMessage: Message = {
 
-        ...prev,
+        id: data.id,
 
-        [selectedChatId]: [
+        sender: 'me',
 
-          ...currentMessages,
+        text: data.content,
 
-          newMessage,
+        time: new Date(data.created_at).toLocaleTimeString([], {
 
-        ],
+          hour: '2-digit',
+
+          minute: '2-digit',
+
+        }),
+
+        created_at: data.created_at,
+
+        read_at: data.read_at,
+
+        edited_at: data.edited_at ?? null,
+
+        story_id: data.story_id ?? null,
+
+        is_story_reply: data.is_story_reply ?? false,
 
       };
 
-    });
+
+
+      setChatHistories((prev) => {
+
+        const currentMessages = prev[selectedChatId] || [];
 
 
 
-    return true;
+        if (
 
-    } catch {setSendError('Не удалось отправить сообщение. Попробуйте ещё раз.');return false;}
-    finally {sendingRef.current=false;setSending(false);}
+          currentMessages.some(
+
+            (message) => message.id === newMessage.id
+
+          )
+
+        ) {
+
+          return prev;
+
+        }
+
+
+
+        return {
+
+          ...prev,
+
+          [selectedChatId]: [
+
+            ...currentMessages,
+
+            newMessage,
+
+          ],
+
+        };
+
+      });
+
+
+
+      return true;
+
+    } catch { setSendError('Не удалось отправить сообщение. Попробуйте ещё раз.'); return false; }
+    finally { sendingRef.current = false; setSending(false); }
   };
-  const handleSendMessage = async (event:React.FormEvent) => {
-    event.preventDefault();if(await sendContent(inputMessage.trim()))setInputMessage('');
+  const handleSendMessage = async (event: React.FormEvent) => {
+    event.preventDefault(); if (await sendContent(inputMessage.trim())) setInputMessage('');
   };
 
 
@@ -1816,7 +1816,7 @@ function MessagesSessionPage() {
 
             <span className={styles.searchIcon}>
 
-              <AppIcon name="search" size={18}/>
+              <AppIcon name="search" size={18} />
 
             </span>
 
@@ -1903,6 +1903,7 @@ function MessagesSessionPage() {
                   <div className={styles.avatarWrapper}>
 
                     <Avatar
+                      username={friend.username}
 
                       src={
 
@@ -2038,7 +2039,7 @@ function MessagesSessionPage() {
 
                           : ''}
 
-                        {parseMusicMessage(lastMsg.text)?(parseMusicMessage(lastMsg.text)?.kind==='track'?'♫ Трек':'♫ Плейлист'):lastMsg.text}
+                        {parseMusicMessage(lastMsg.text) ? (parseMusicMessage(lastMsg.text)?.kind === 'track' ? '♫ Трек' : '♫ Плейлист') : lastMsg.text}
 
                       </p>
 
@@ -2106,7 +2107,7 @@ function MessagesSessionPage() {
 
               >
 
-                ← Назад
+                ←
 
               </button>
 
@@ -2115,6 +2116,7 @@ function MessagesSessionPage() {
               <div className={styles.headerUserInfo}>
 
                 <Avatar
+                  username={activeFriend.username}
 
                   src={
 
@@ -2160,7 +2162,7 @@ function MessagesSessionPage() {
 
               </div>
 
-              <ChatActions key={activeFriend.id} peerId={activeFriend.id} name={activeFriend.display_name||activeFriend.username} musicDisabled={!blocksReady||chatBlocked||sending} onMusic={()=>setMusicPickerFor(musicPickerFor===selectedChatId?null:selectedChatId)}/>
+              <ChatActions key={activeFriend.id} peerId={activeFriend.id} name={activeFriend.display_name || activeFriend.username} musicDisabled={!blocksReady || chatBlocked || sending} onMusic={() => setMusicPickerFor(musicPickerFor === selectedChatId ? null : selectedChatId)} />
             </div>
 
 
@@ -2244,6 +2246,7 @@ function MessagesSessionPage() {
                           showAvatar ? (
 
                             <Avatar
+                              username={activeFriend.username}
 
                               src={
 
@@ -2479,7 +2482,7 @@ function MessagesSessionPage() {
 
                                             />
 
-                                            <div className={styles.playOverlay}>▶</div>
+                                            <div className={styles.playOverlay}><AppIcon name="play" size={26}/></div>
 
                                           </div>
 
@@ -2510,7 +2513,7 @@ function MessagesSessionPage() {
 
 
 
-                              <div className={styles.messageText}>{parseMusicMessage(msg.text)?<MusicMessageCard content={msg.text}/>:msg.text}</div>
+                              <div className={styles.messageText}>{parseMusicMessage(msg.text) ? <MusicMessageCard content={msg.text} /> : msg.text}</div>
 
                             </>
 
@@ -2606,9 +2609,9 @@ function MessagesSessionPage() {
 
 
 
-            {chatBlocked&&<p role="status">Общение с этим пользователем недоступно. История сообщений сохранена.</p>}
-            {sendError&&<p role="alert">{sendError}</p>}
-            {musicPickerFor===selectedChatId&&!chatBlocked&&<MusicMessagePicker busy={sending} onSend={sendContent} onClose={()=>setMusicPickerFor(null)}/>}
+            {chatBlocked && <p role="status">Общение с этим пользователем недоступно. История сообщений сохранена.</p>}
+            {sendError && <p role="alert">{sendError}</p>}
+            {musicPickerFor === selectedChatId && !chatBlocked && <MusicMessagePicker busy={sending} onSend={sendContent} onClose={() => setMusicPickerFor(null)} />}
             <form
 
               onSubmit={handleSendMessage}
@@ -2621,8 +2624,8 @@ function MessagesSessionPage() {
 
                 type="text"
 
-                disabled={!blocksReady||chatBlocked||sending}
-                    placeholder="Написать сообщение..."
+                disabled={!blocksReady || chatBlocked || sending}
+                placeholder="Написать сообщение..."
 
                 value={inputMessage}
 
@@ -2642,7 +2645,7 @@ function MessagesSessionPage() {
 
                 type="submit"
 
-                disabled={!inputMessage.trim()||!blocksReady||chatBlocked||sending}
+                disabled={!inputMessage.trim() || !blocksReady || chatBlocked || sending}
                 aria-label="Отправить сообщение"
                 className={styles.sendBtn}
 

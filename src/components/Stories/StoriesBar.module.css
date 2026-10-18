@@ -66,6 +66,20 @@
   border: 2px solid var(--bg-dark);
 }
 
+.storyAvatarButton {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.storyAvatarButton:focus-visible,
+.userName:focus-visible,
+.addBadge:focus-visible {
+  outline: 2px solid var(--accent-purple-light);
+  outline-offset: 3px;
+}
+
 .addBadge {
   position: absolute;
   bottom: 0;

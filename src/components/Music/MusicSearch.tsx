@@ -34,7 +34,7 @@ export function MusicSearch({mobile=false,onClose}:{mobile?:boolean;onClose?:()=
     {(searchQuery||mobile)&&<button className={styles.clearBtn} aria-label={mobile?'Закрыть поиск':'Очистить поиск'} onClick={()=>{setSearchQuery('');setOpen(false);onClose?.();}}>✕</button>}
     {expanded&&<div className={styles.suggestions}>
       <div id={id} role="listbox" aria-label="Подсказки поиска">
-        {suggestions.map((s,index)=><button key={s.kind+s.id} id={`${id}-${index}`} role="option" aria-selected={active===index} tabIndex={-1} onMouseDown={e=>e.preventDefault()} onClick={()=>choose(index)}><span aria-hidden="true">{s.kind==='track'?'▶':s.kind==='artist'?<AppIcon name="music" size={16}/>:"▣"}</span><span>{s.label}<small>{s.detail}{s.kind==='track'?' · Песня':''}</small></span></button>)}
+        {suggestions.map((s,index)=><button key={s.kind+s.id} id={`${id}-${index}`} role="option" aria-selected={active===index} tabIndex={-1} onMouseDown={e=>e.preventDefault()} onClick={()=>choose(index)}><span aria-hidden="true">{s.kind==='track'?<AppIcon name="play" size={16}/>:s.kind==='artist'?<AppIcon name="music" size={16}/>:"▣"}</span><span>{s.label}<small>{s.detail}{s.kind==='track'?' · Песня':''}</small></span></button>)}
       </div>
       {!suggestions.length&&<p>{library?'Ничего не найдено в каталоге Melo.':'Загружаем каталог…'}</p>}
       <button className={styles.allResults} onMouseDown={e=>e.preventDefault()} onClick={()=>{setOpen(false);router.push('/#music');}}>Все результаты →</button>

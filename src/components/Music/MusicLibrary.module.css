@@ -46,6 +46,7 @@
 .playlistControlInline { flex-direction: column; gap: 8px; width: 100%; }
 .playlistMenuInline { position: static; max-height: 35dvh; overflow-y: auto; }
 .playlistMenuBelow { bottom: auto; top: calc(100% + 8px); max-height: 60dvh; overflow-y: auto; }
+.playlistMenu .button[aria-pressed=true] { background: #8b5cf633; border-color: var(--accent-purple-light); }
 .footer { font-size: 12px; margin-top: 24px; }
 .queuePanel { position: fixed; z-index: 310; right: 18px; bottom: 110px; width: min(420px, calc(100vw - 36px)); max-height: 65dvh; overflow: auto; padding: 20px; border: 1px solid #ffffff24; border-radius: 20px; background: #131426; box-shadow: 0 20px 70px #0009; }
 .queuePanel .row { grid-template-columns: 1fr 32px; }

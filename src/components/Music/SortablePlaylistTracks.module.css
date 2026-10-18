@@ -1,0 +1,10 @@
+.list { display: flex; flex-direction: column; gap: 12px; }
+.item { position: relative; min-width: 0; }
+.item [data-track-drag-handle] { cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.item img { -webkit-user-drag: none; }
+.dragging { z-index: 5; box-shadow: 0 12px 32px #0008; border-radius: 12px; opacity: .95; }
+.dragging [data-track-drag-handle] { cursor: grabbing; }
+.dropBefore::before, .dropAfter::after { content: ''; position: absolute; left: 0; right: 0; height: 3px; border-radius: 3px; background: var(--accent-purple-light); pointer-events: none; }
+.dropBefore::before { top: -7px; }
+.dropAfter::after { bottom: -7px; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

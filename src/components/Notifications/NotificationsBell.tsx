@@ -112,9 +112,6 @@ function NotificationsInbox({ userId }: { userId: string | null }) {
                     const unread = !notification.read_at;
                     const content = (
                       <>
-                        <span className={styles.avatar}>
-                          <Avatar src={notification.actor?.avatar_url} alt=""/>
-                        </span>
                         <span className={styles.copy}>
                           <span><strong>{notificationActorName(notification)}</strong> {text}</span>
                           <time dateTime={notification.created_at}>
@@ -126,9 +123,15 @@ function NotificationsInbox({ userId }: { userId: string | null }) {
                     );
                     const itemClass = `${styles.item} ${unread ? styles.unread : ''}`;
                     return (
-                      <li key={notification.id}>
+                      <li key={notification.id} className={itemClass}>
+                        <span className={styles.avatar}>
+                          <Avatar username={notification.actor?.username}
+                            ownProfile={Boolean(notification.actor_id && notification.actor_id === userId)}
+                            src={notification.actor?.avatar_url} alt={notificationActorName(notification)}
+                            onProfileOpen={() => setOpen(false)}/>
+                        </span>
                         {href ? (
-                          <Link href={href} className={itemClass} onClick={() => {
+                          <Link href={href} className={styles.notificationAction} onClick={() => {
                             if (unread) void markAsRead(notification.id);
                             // A previous global search must not hide the request/friend we open.
                             if (href.startsWith('/friends')) setSearchQuery('');
@@ -137,7 +140,7 @@ function NotificationsInbox({ userId }: { userId: string | null }) {
                             {content}
                           </Link>
                         ) : (
-                          <button className={itemClass} onClick={() => {
+                          <button className={styles.notificationAction} onClick={() => {
                             if (unread) void markAsRead(notification.id);
                           }}>
                             {content}

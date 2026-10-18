@@ -182,7 +182,7 @@ function SettingsForm() {
             <label className={styles.label}>Аватар профиля</label>
             <div className={styles.avatarSection}>
               <div className={styles.avatarPreviewWrapper}>
-                <Avatar src={currentPreviewAvatar} alt="Аватар" className={styles.avatarPreview} />
+                <Avatar ownProfile src={currentPreviewAvatar} alt="Ваш профиль" className={styles.avatarPreview} />
               </div>
               <div className={styles.avatarUploadControls}>
                 <input

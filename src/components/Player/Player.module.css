@@ -98,8 +98,8 @@
   width: 34px;
   height: 34px;
   border-radius: var(--radius-full);
-  background: var(--text-main);
-  color: #0b0f19;
+  background: transparent;
+  color: var(--text-main);
   font-size: 14px;
   display: flex;
   align-items: center;
@@ -274,13 +274,14 @@
 
 .expandedHeader {
   flex-shrink: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 24px;
 }
 
-.expandedHeaderActions { display: flex; align-items: center; gap: 8px; }
+.expandedHeaderActions { display: flex; align-items: center; justify-self: end; gap: 2px; }
+.expandedHeader > .closeBtn { justify-self: start; }
 
 .closeBtn {
   font-size: 16px;
@@ -294,6 +295,13 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 380px) {
+  .mobileExpandedOverlay { padding-left: 16px; padding-right: 16px; }
+  .expandedHeaderTitle { font-size: 11px; }
 }
 
 .expandedBody {
@@ -376,8 +384,8 @@
   width: 54px;
   height: 54px;
   border-radius: var(--radius-full);
-  background: var(--text-main);
-  color: #0b0f19;
+  background: transparent;
+  color: var(--text-main);
   font-size: 22px;
   display: flex;
   align-items: center;
@@ -434,8 +442,8 @@
     width: 32px;
     height: 32px;
     border-radius: var(--radius-full);
-    background: var(--text-main);
-    color: #0b0f19;
+    background: transparent;
+    color: var(--text-main);
     font-size: 13px;
     display: flex;
     align-items: center;

@@ -25,6 +25,32 @@
   box-sizing: border-box;
 }
 
+/* Stories use the space between the header and the fixed player/navigation. */
+.mainContent.storyLayout {
+  height: 100dvh;
+  min-height: 0;
+  padding-bottom: 64px;
+  overflow: hidden;
+}
+
+.storyLayout > header,
+.storyLayout > aside {
+  flex-shrink: 0;
+}
+
+.contentArea.storyContentArea {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 10px 12px;
+}
+
+@media (max-width: 768px) {
+  .mainContent.storyLayout {
+    padding-bottom: 110px;
+  }
+}
+
 .musicOverview { scroll-margin-top: 90px; }
 
 .heroBanner {

@@ -846,7 +846,7 @@ export default function StoryViewerPage({ params }: PageProps) {
         {/* Story Top Header */}
         <div className={styles.storyHeader}>
           <div className={styles.userMeta}>
-            <Avatar src={avatarUrl} alt={userName} className={styles.avatar} />
+            <Avatar username={profile?.username} ownProfile={isOwnStory} src={avatarUrl} alt={userName} className={styles.avatar} />
             <div className={styles.userInfo}>
               <span className={styles.username}>{userName}</span>
               {timeAgo && <span className={styles.timeAgo}>{timeAgo}</span>}
@@ -919,6 +919,7 @@ export default function StoryViewerPage({ params }: PageProps) {
                 onTouchEnd={() => handlePointerUp('right')}
               />
 
+              <div className={styles.presentationFrame}>
               <StoryCanvas presentation={presentation} music={musicTrack}>{story.media_type === 'video' ? (
                 <video
                   ref={videoRef}
@@ -934,6 +935,7 @@ export default function StoryViewerPage({ params }: PageProps) {
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={story.media_url} alt="Story" className={styles.mediaImg} />
               )}</StoryCanvas>
+              </div>
             </>
           )}
         </div>
@@ -1056,7 +1058,7 @@ export default function StoryViewerPage({ params }: PageProps) {
                       const vTime = v.viewed_at ? formatTimeAgo(v.viewed_at) : '';
                       return (
                         <div key={v.id} className={styles.viewerRow}>
-                          <Avatar src={vAvatar} alt={vName} className={styles.viewerAvatar} />
+                          <Avatar username={v.profile?.username} src={vAvatar} alt={vName} className={styles.viewerAvatar} />
                           <div className={styles.viewerMeta}>
                             <div className={styles.viewerNameRow}>
                               <span className={styles.viewerName}>{vName}</span>

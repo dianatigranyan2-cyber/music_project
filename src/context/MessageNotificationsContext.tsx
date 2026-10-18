@@ -59,6 +59,7 @@ function IncomingMessageToasts({ userId, onUnreadCountChange }: {
       id: message.id,
       senderId: message.sender_id,
       senderName: sender?.display_name?.trim() || sender?.username || 'Пользователь',
+      senderUsername: sender?.username ?? null,
       avatarUrl: sender?.avatar_url ?? null,
       preview: parseMusicMessage(message.content) ? (parseMusicMessage(message.content)?.kind==='track'?'♫ Вам отправили трек':'♫ Вам отправили плейлист') : messageToastPreview(message),
       arrivalOrder,

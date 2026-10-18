@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import styles from '../../app/page.module.css';
 import { Navigation } from '../Navigation/Navigation';
 import { Header } from '../Header/Header';
@@ -16,6 +17,7 @@ import {FriendListeningProvider} from '../../context/FriendListeningContext';
 import {FriendListeningStatus} from '../Music/FriendListeningStatus';
 
 const InnerShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isStory = usePathname().startsWith('/stories/');
   const { currentTrack, searchQuery, setSearchQuery, handleNextTrack, handlePrevTrack } = usePlayer();
 
   return (
@@ -24,13 +26,13 @@ const InnerShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <Navigation />
 
       {/* Main Viewport */}
-      <div className={styles.mainContent}>
+      <div className={`${styles.mainContent} ${isStory ? styles.storyLayout : ''}`}>
         <Header
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         />
         <FriendListeningStatus/>
-        <main className={styles.contentArea}>
+        <main className={`${styles.contentArea} ${isStory ? styles.storyContentArea : ''}`}>
           {children}
         </main>
       </div>

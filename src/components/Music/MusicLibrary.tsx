@@ -47,7 +47,7 @@ export function MusicLibrary({ artistId, albumId, compact = false }: { artistId?
       {visibleAlbums.map(a => <Link className={styles.card} key={a.id} href={'/music/albums/' + a.id} onClick={() => setSearchQuery('')}><strong>{a.title}</strong><span>{library.artists.find(ar => ar.id === a.artistId)?.name} · {a.year}</span></Link>)}
     </div></section>}
     <div className={styles.heading}><h2>{searchQuery.trim() ? `Результаты: ${searchQuery}` : 'Треки'} <span className={styles.count}>{tracks.length}</span></h2>
-      {tracks.length > 0 && <button className={styles.button} onClick={() => playTrack(tracks[0], tracks)}>▶ Слушать всё</button>}
+      {tracks.length > 0 && <button className={styles.button} onClick={() => playTrack(tracks[0], tracks)}><AppIcon name="play" size={18}/> Слушать всё</button>}
     </div>
     {tracks.length ? <MusicTracks tracks={compact ? tracks.slice(0, 6) : tracks} /> : <p role="status">{library.tracks.length ? 'Ничего не найдено. Попробуйте другое название или исполнителя.' : 'В библиотеке пока нет опубликованных треков.'}</p>}
     <p className={styles.footer}><Link href="/music/credits">Авторы и лицензии</Link></p>

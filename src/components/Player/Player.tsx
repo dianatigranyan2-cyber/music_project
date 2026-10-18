@@ -53,8 +53,8 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
               ▼
             </button>
             <span className={styles.expandedHeaderTitle}>Сейчас играет</span>
-            <button className={styles.smallBtn} aria-label="Открыть очередь" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}>☷</button>
             <div className={styles.expandedHeaderActions}>
+              <button className={styles.smallBtn} aria-label="Открыть очередь" aria-expanded={queueOpen} onClick={() => setQueueOpen(!queueOpen)}>☷</button>
               <PlaylistButton key={currentTrack.id} track={currentTrack} icon="+" placement="below" onNavigate={() => setIsExpandedMobile(false)}/>
               <FavoriteButton track={currentTrack}/>
             </div>
@@ -121,7 +121,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
                 disabled={!playable}
                 aria-label={listeningControl?(friendSound?'Выключить звук у себя':'Включить звук'):isPlaying ? 'Пауза' : 'Воспроизвести'}
               >
-                {isPlaying ? '⏸' : '▶'}
+                <AppIcon name={isPlaying ? 'pause' : 'play'} size={54}/>
               </button>
               <button className={styles.stepBtn} onClick={onNextTrack} disabled={!canSkip || !!listeningControl} aria-label="Следующий трек">
                 ⏭
@@ -203,7 +203,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
                 disabled={!playable}
                 aria-label={listeningControl?(friendSound?'Выключить звук у себя':'Включить звук'):isPlaying ? 'Пауза' : 'Воспроизвести'}
             >
-              {isPlaying ? '⏸' : '▶'}
+              <AppIcon name={isPlaying ? 'pause' : 'play'} size={34}/>
             </button>
             <button className={styles.stepBtn} onClick={onNextTrack} disabled={!canSkip || !!listeningControl} aria-label="Следующий трек">
               ⏭
@@ -251,7 +251,7 @@ export const Player: React.FC<PlayerProps> = ({ currentTrack, onNextTrack, onPre
               togglePlayback();
             }}
           >
-            {isPlaying ? '⏸' : '▶'}
+            <AppIcon name={isPlaying ? 'pause' : 'play'} size={32}/>
           </button>
           <button
             className={styles.expandBtn}

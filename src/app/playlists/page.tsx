@@ -1,4 +1,5 @@
 'use client';
+import { AppIcon } from '../../components/Icons/AppIcon';
 import {useState} from 'react';
 import Link from 'next/link';
 import {usePersonalMusic} from '../../context/PersonalMusicContext';
@@ -9,12 +10,13 @@ import {PlaylistDialog} from '../../components/Music/PlaylistDialog';
 import {PlaylistCover} from '../../components/Music/PlaylistCover';
 import {SaveMusicButton} from '../../components/Music/SaveMusicButton';
 import {filterMusic} from '../../lib/musicLibrary';
-import {movePlaylistTrack} from '../../lib/personalMusic';
+import {SortablePlaylistTracks} from '../../components/Music/SortablePlaylistTracks';
+import {PlaylistOptions} from '../../components/Music/PlaylistOptions';
 import type {Track} from '../../types';
 import styles from './page.module.css';
 
 export default function PlaylistsPage(){
-  const {data,signedIn,loading,busy,error,mutate,refresh,uploadCover}=usePersonalMusic();
+  const {data,signedIn,loading,busy,error,mutate,refresh}=usePersonalMusic();
   const {library,error:catalogError,retry}=useMusicLibrary();
   const {playTrack}=usePlayer();
   const [tab,setTab]=useState<'my'|'favorites'|'recent'|'artists'|'albums'>('my');
@@ -29,21 +31,21 @@ export default function PlaylistsPage(){
   const favorites=resolve(data?.favoriteIds??[]);
   const tracks=resolve(playlist?.trackIds??[]);
   return <div className={styles.container}>
-    <header className={styles.headerTitleRow}><div><h1 className={styles.title}>Моя музыка</h1><p className={styles.subtitle}>Любимые песни и личные подборки.</p></div>
+    {!playlist&&<header className={styles.headerTitleRow}><div><h1 className={styles.title}>Моя музыка</h1><p className={styles.subtitle}>Любимые песни и личные подборки.</p></div>
       {signedIn&&<button className={styles.createBtn} disabled={loading||busy} onClick={()=>setForm({id:crypto.randomUUID(),title:'',description:'',edit:false})}>+ Создать плейлист</button>}
-    </header>
+    </header>}
     {!signedIn&&!loading?<p>Войдите, чтобы сохранять любимые песни и создавать плейлисты. <Link href="/login">Войти</Link></p>:<>
       {loading&&<p role="status">Загрузка вашей музыки…</p>}
       {error&&<p role="alert">{error} <button className={styles.cancelBtn} disabled={busy} onClick={refresh}>Повторить</button></p>}
       {catalogError&&<p role="alert">{catalogError} <button className={styles.cancelBtn} onClick={retry}>Загрузить каталог</button></p>}
       {!library&&!catalogError&&<p role="status">Загружаем каталог песен…</p>}
-      <div className={styles.tabsRow}>
+      {!playlist&&<div className={styles.tabsRow}>
         <button className={`${styles.tabBtn} ${tab==='my'?styles.activeTab:''}`} onClick={()=>{setTab('my');setSelected(null);}}>Мои плейлисты ({data?.playlists.length??0})</button>
         <button className={`${styles.tabBtn} ${tab==='favorites'?styles.activeTab:''}`} onClick={()=>{setTab('favorites');setSelected(null);}}>Любимые треки ({data?.favoriteIds.length??0})</button>
         <button className={`${styles.tabBtn} ${tab==='recent'?styles.activeTab:''}`} onClick={()=>{setTab('recent');setSelected(null);}}>Недавно прослушано</button>
         <button className={`${styles.tabBtn} ${tab==='artists'?styles.activeTab:''}`} onClick={()=>{setTab('artists');setSelected(null);}}>Исполнители ({data?.savedArtistIds?.length??0})</button>
         <button className={`${styles.tabBtn} ${tab==='albums'?styles.activeTab:''}`} onClick={()=>{setTab('albums');setSelected(null);}}>Альбомы ({data?.savedAlbumIds?.length??0})</button>
-      </div>
+      </div>}
       {tab==='favorites'&&<>{library&&!data?.favoriteIds.length&&<p>Нажмите ♡ у песни, чтобы добавить её сюда.</p>}<MusicTracks tracks={favorites}/>
         {library&&data?.favoriteIds.filter(id=>!tracksById.has(id)).map(id=><p key={id}>Трек больше недоступен. <button className={styles.cancelBtn} disabled={busy} onClick={()=>mutate({action:'favorite',trackId:id,liked:false})}>Убрать из любимых</button></p>)}
       </>}
@@ -65,31 +67,23 @@ export default function PlaylistsPage(){
         </button>)}
       </div>}
       {tab==='my'&&playlist&&<>
-        <div className={styles.toolbar}><button className={styles.cancelBtn} onClick={()=>setSelected(null)}>← Все плейлисты</button>
-          <button className={styles.createBtn} disabled={!tracks.length} onClick={()=>playTrack(tracks[0],tracks)}>▶ Слушать</button>
-          <button className={styles.cancelBtn} disabled={busy} onClick={()=>setForm({id:playlist.id,title:playlist.title,description:playlist.description,edit:true})}>Изменить</button>
-          <button className={styles.cancelBtn} disabled={busy} onClick={()=>setConfirmDelete(true)}>Удалить плейлист</button></div>
-        <h2>{playlist.title}</h2><p className={styles.subtitle}>{playlist.description}</p>
-        <div className={styles.coverSettings}><div className={styles.detailCover}><PlaylistCover tracks={tracks} src={playlist.coverUrl} title={playlist.title}/></div><div className={styles.coverActions}>
-          <label className={styles.cancelBtn}>Загрузить обложку<input className={styles.coverInput} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} aria-label="Загрузить обложку плейлиста" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';if(file)void uploadCover(playlist.id,file);}}/></label>
-          <span className={styles.subtitle}>JPEG, PNG или WebP, до 5 МБ</span>
-          {playlist.coverPath&&<button className={styles.cancelBtn} disabled={busy} onClick={()=>mutate({action:'cover',playlistId:playlist.id,path:null})}>Автоматическая обложка</button>}
-        </div></div>
-        <div className={styles.shareBox}><strong>{playlist.shared?'Доступ по ссылке включён':'Личный плейлист'}</strong><p className={styles.subtitle}>{playlist.shared?'Любой, у кого есть ссылка, сможет открыть и слушать подборку.':'Подборка доступна только тебе.'}</p>
-          <div className={styles.toolbar}><button className={styles.cancelBtn} disabled={busy} onClick={async()=>{setCopyStatus('');await mutate({action:'sharing',playlistId:playlist.id,enabled:!playlist.shared});}}>{playlist.shared?'Закрыть доступ':'Включить доступ по ссылке'}</button>
-          {playlist.shared&&playlist.shareToken&&<><Link className={styles.cancelBtn} href={'/music/playlists/'+playlist.shareToken} target="_blank">Открыть ссылку</Link><button className={styles.cancelBtn} onClick={async()=>{const url=new URL('/music/playlists/'+playlist.shareToken,location.origin).href;try{await navigator.clipboard.writeText(url);setCopyStatus('Ссылка скопирована');}catch{setCopyStatus(url);}}}>Скопировать ссылку</button></>}
-          </div>{copyStatus&&<p className={styles.copyStatus} role="status">{copyStatus}</p>}
+        <div className={styles.playlistHeading}>
+          <button className={styles.backBtn} aria-label="Все плейлисты" title="Все плейлисты" onClick={()=>setSelected(null)}>←</button>
+          <h1 className={styles.title}>{playlist.title}</h1>
+          <PlaylistOptions>
+            <button className={styles.cancelBtn} disabled={!tracks.length} onClick={()=>playTrack(tracks[0],tracks)}><AppIcon name="play" size={18}/> Слушать плейлист</button>
+            <button className={styles.cancelBtn} disabled={busy} onClick={()=>setForm({id:playlist.id,title:playlist.title,description:playlist.description,edit:true})}>Изменить плейлист</button>
+            <button className={styles.cancelBtn} disabled={busy} onClick={()=>setConfirmDelete(true)}>Удалить плейлист</button>
+            <div className={styles.shareBox}><strong>{playlist.shared?'Доступ по ссылке включён':'Личный плейлист'}</strong><p className={styles.subtitle}>{playlist.shared?'Любой, у кого есть ссылка, сможет открыть и слушать подборку.':'Подборка доступна только тебе.'}</p>
+              <div className={styles.toolbar}><button className={styles.cancelBtn} disabled={busy} onClick={async()=>{setCopyStatus('');await mutate({action:'sharing',playlistId:playlist.id,enabled:!playlist.shared});}}>{playlist.shared?'Закрыть доступ':'Включить доступ по ссылке'}</button>
+              {playlist.shared&&playlist.shareToken&&<><Link className={styles.cancelBtn} href={'/music/playlists/'+playlist.shareToken} target="_blank">Открыть ссылку</Link><button className={styles.cancelBtn} onClick={async()=>{const url=new URL('/music/playlists/'+playlist.shareToken,location.origin).href;try{await navigator.clipboard.writeText(url);setCopyStatus('Ссылка скопирована');}catch{setCopyStatus(url);}}}>Скопировать ссылку</button></>}
+              </div>{copyStatus&&<p className={styles.copyStatus} role="status">{copyStatus}</p>}
+            </div>
+          </PlaylistOptions>
         </div>
         {confirmDelete&&<div className={styles.confirmBox} role="alert"><p>Удалить «{playlist.title}»? Сами песни останутся в каталоге.</p><div className={styles.toolbar}><button className={styles.cancelBtn} disabled={busy} onClick={()=>setConfirmDelete(false)}>Отмена</button><button className={styles.submitBtn} disabled={busy} onClick={async()=>{if(await mutate({action:'delete',playlistId:playlist.id})){setSelected(null);setConfirmDelete(false);}}}>Подтвердить удаление</button></div></div>}
         {!playlist.trackIds.length&&<p>В подборке пока нет песен. Добавьте их ниже.</p>}
-        {library&&playlist.trackIds.map((id,index)=>{const track=tracksById.get(id);return <section key={id}>
-          {track?<MusicTracks tracks={[track]} playbackCollection={tracks}/>:<p>Трек больше недоступен</p>}
-          <div className={styles.orderControls}>
-            <button className={styles.cancelBtn} disabled={busy||index===0} aria-label={`Выше: ${track?.title??'недоступный трек'}`} onClick={()=>mutate({action:'reorder',playlistId:playlist.id,trackIds:movePlaylistTrack(playlist.trackIds,id,-1)})}>↑</button>
-            <button className={styles.cancelBtn} disabled={busy||index===playlist.trackIds.length-1} aria-label={`Ниже: ${track?.title??'недоступный трек'}`} onClick={()=>mutate({action:'reorder',playlistId:playlist.id,trackIds:movePlaylistTrack(playlist.trackIds,id,1)})}>↓</button>
-            <button className={styles.cancelBtn} disabled={busy} onClick={()=>mutate({action:'remove',playlistId:playlist.id,trackId:id})}>Убрать из плейлиста</button>
-          </div>
-        </section>;})}
+        {library&&<SortablePlaylistTracks key={playlist.id} trackIds={playlist.trackIds} tracks={tracks} busy={busy} onReorder={trackIds=>mutate({action:'reorder',playlistId:playlist.id,trackIds})}/>}
         <h2>Добавить песни</h2><label htmlFor="playlist-search">Поиск по каталогу</label><input id="playlist-search" className={styles.input} placeholder="Название песни или исполнитель" value={query} onChange={e=>setQuery(e.target.value)}/>
         <div className={styles.addList}>{filterMusic(library?.tracks??[],query).map(t=><div className={styles.addRow} key={t.id}><span>{t.title}<small>{t.artist}</small></span><button className={styles.cancelBtn} disabled={busy||playlist.trackIds.includes(t.id)} onClick={()=>mutate({action:'add',playlistId:playlist.id,trackId:t.id})}>{playlist.trackIds.includes(t.id)?'Добавлено ✓':'Добавить'}</button></div>)}</div>
       </>}

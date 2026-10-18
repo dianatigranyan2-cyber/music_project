@@ -51,10 +51,9 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onSelectStory, 
 
       <div className={styles.storiesScroll}>
         {stories.map((story) => (
-          <button
+          <div
             key={story.id}
             className={styles.storyCard}
-            onClick={() => handleStoryClick(story)}
           >
             <div
               className={`${styles.avatarRing} ${story.isCurrentUser
@@ -66,19 +65,27 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onSelectStory, 
                   : ''
                 }`}
             >
-              <Avatar
-                src={story.userAvatar}
-                alt={story.userName}
-                className={styles.avatar}
-              />
+              <button type="button" className={styles.storyAvatarButton}
+                onClick={() => handleStoryClick(story)}
+                aria-label={story.id === 'current-user-add' ? 'Добавить вашу историю' : `Открыть истории: ${story.userName}`}>
+                <Avatar
+                  src={story.userAvatar}
+                  alt={story.userName}
+                  className={styles.avatar}
+                />
+              </button>
               {story.isCurrentUser && (
-                <div className={styles.addBadge} onClick={handleAddBadgeClick} title="Добавить историю">
+                <button type="button" className={styles.addBadge} onClick={handleAddBadgeClick} aria-label="Добавить историю" title="Добавить историю">
                   <span>+</span>
-                </div>
+                </button>
               )}
             </div>
-            <span className={styles.userName}>{story.userName}</span>
-          </button>
+            <button type="button" className={styles.userName}
+              onClick={() => handleStoryClick(story)}
+              aria-label={story.id === 'current-user-add' ? 'Добавить вашу историю' : `Открыть истории: ${story.userName}`}>
+              {story.userName}
+            </button>
+          </div>
         ))}
       </div>
     </section>

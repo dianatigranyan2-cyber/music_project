@@ -12,6 +12,7 @@ export interface MessageToast {
   id: string;
   senderId: string;
   senderName: string;
+  senderUsername?: string | null;
   avatarUrl: string | null;
   preview: string;
   arrivalOrder: number;

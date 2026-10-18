@@ -22,7 +22,7 @@
 }
 
 .bell:focus-visible,
-.item:focus-visible,
+.notificationAction:focus-visible,
 .textButton:focus-visible,
 .moreButton:focus-visible {
   outline: 2px solid var(--accent-purple-light);
@@ -108,6 +108,16 @@
 
 .item:hover {
   background: var(--bg-card-hover);
+}
+
+.notificationAction {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
 }
 
 .unread {

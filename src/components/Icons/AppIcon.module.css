@@ -15,6 +15,10 @@
   mask: var(--icon-image) center / contain no-repeat;
 }
 
+.asset {
+  object-fit: contain;
+}
+
 .liked {
   color: #dfc7ff;
 }
