@@ -1,7 +1,11 @@
 import type { Track } from '../types';
 
 export const EMPTY_TRACK: Track = { id: '', title: 'Выберите музыку', artist: 'Библиотека Melo', album: '', coverUrl: '/music-placeholder.svg', duration: 0 };
-export function isPlayableTrack(track: Track): boolean { return track.source === 'library' && Boolean(track.streamUrl?.startsWith('https://')); }
+export function isPlayableTrack(track: Track): boolean {
+  if (track.source === 'library') return Boolean(track.streamUrl?.startsWith('https://'));
+  return track.source === 'audius' && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(track.id)
+    && track.streamUrl === `/api/music/audius/${track.id}/stream`;
+}
 export function playbackQueue(track: Track, collection: Track[]): Track[] {
   const unique = new Map(collection.filter(isPlayableTrack).map(item => [item.id, item]));
   if (isPlayableTrack(track)) unique.set(track.id, track);

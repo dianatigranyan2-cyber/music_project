@@ -50,7 +50,8 @@ export function StoryEditor({ story, initialFile, onClose, onSaved }: { story?: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [playing, setPlaying] = useState(false);
-  const track = library?.tracks.find(item => item.id === trackId);
+  const storyTracks = library?.tracks.filter(item => item.source !== 'audius') ?? [];
+  const track = storyTracks.find(item => item.id === trackId);
   const selected = presentation.layers.find(layer => layer.id === selectedId);
   const textLength = presentation.layers.filter(layer => layer.kind === 'text').reduce((total, layer) => total + layer.text.length, 0);
   const mediaType = file ? file.type.startsWith('video/') ? 'video' : 'image' : story?.media_type;
@@ -168,7 +169,7 @@ export function StoryEditor({ story, initialFile, onClose, onSaved }: { story?: 
               <label>Поиск музыки<input placeholder="Название песни или исполнитель" value={query} onChange={event => setQuery(event.target.value)}/></label>
               {libraryError && <p role="status">{libraryError} <button type="button" onClick={retry}>Повторить</button></p>}
               {!library && !libraryError && <p role="status">Загружаем музыку…</p>}
-              {library && <div className={styles.results}>{filterMusic(library.tracks,query).slice(0,20).map(item => <button type="button" key={item.id} aria-pressed={item.id === trackId} onClick={() => chooseTrack(item.id,item.duration)}><span className={styles.trackNote}><AppIcon name="music"/></span><span>{item.title}<small>{item.artist}</small></span></button>)}{!filterMusic(library.tracks,query).length && <p>Ничего не найдено. Попробуйте другое название.</p>}</div>}
+              {library && <div className={styles.results}>{filterMusic(storyTracks,query).slice(0,20).map(item => <button type="button" key={item.id} aria-pressed={item.id === trackId} onClick={() => chooseTrack(item.id,item.duration)}><span className={styles.trackNote}><AppIcon name="music"/></span><span>{item.title}<small>{item.artist}</small></span></button>)}{!filterMusic(storyTracks,query).length && <p>Ничего не найдено. Попробуйте другое название.</p>}</div>}
               {trackId && <div className={styles.fragment}><strong>{track ? track.title + ' — ' + track.artist : 'Трек недоступен'}</strong>{track && <><label>Начало: {start} сек.<input type="range" min={0} max={Math.max(0,track.duration-duration)} step={1} value={start} onChange={event => { stopPreview(); setStart(Number(event.target.value)); }}/></label><label>Длительность: {duration} сек.<input type="range" min={1} max={Math.min(15,track.duration)} step={1} value={duration} onChange={event => { stopPreview(); const next=Number(event.target.value); setDuration(next); setStart(Math.min(start,track.duration-next)); }}/></label><button type="button" className={styles.secondary} onClick={() => void playPreview()}><AppIcon name={playing ? 'pause' : 'play'} size={18}/> {playing ? 'Пауза' : 'Прослушать фрагмент'}</button></>}
                 <button type="button" className={styles.secondary} onClick={() => { const sticker=presentation.layers.find(layer=>layer.kind==='music'); if(sticker) removeLayer(sticker.id); }}>Убрать музыку</button>
                 {selected?.kind === 'music' && <LayerControls layer={selected} onChange={change => patchLayer(selected.id,change)}/>}<small>До 15 секунд. Исходный звук видео при добавлении музыки выключается.</small>

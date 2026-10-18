@@ -12,6 +12,11 @@ export async function POST(request: Request) {
     if (!['create','update'].includes(body.action) || body.action === 'update' && !isMusicId(body.storyId)) return fail('Некорректная история.', 400);
     const draft = parseStoryDraft(body, user.id);
     if (!draft) return fail('Проверьте текст, файл и фрагмент музыки.', 400);
+    if (draft.musicTrackId) {
+      const music = await client.from('music_tracks').select('provider').eq('id', draft.musicTrackId).eq('is_published', true).maybeSingle();
+      if (music.error || !music.data) return fail('Выбранная музыка недоступна.', 409);
+      if (music.data.provider === 'audius') return fail('Музыка Audius пока доступна для прослушивания, но не для историй.', 400);
+    }
     const previous = body.action === 'update' ? await client.from('stories').select('id,media_path').eq('id', body.storyId).eq('user_id', user.id).gt('expires_at', new Date().toISOString()).maybeSingle() : null;
     if (previous && (previous.error || !previous.data)) return fail('История недоступна для редактирования.', 404);
     const exists = await client.storage.from('stories').exists(draft.mediaPath);

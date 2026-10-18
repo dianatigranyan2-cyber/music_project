@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createHash,randomUUID } from 'node:crypto';
-import { createClient } from '../../../../lib/supabase/server';
+import { musicAdminClient as adminClient } from '../../../../lib/musicAdminAuth';
 import { parseCatalogMetadata,audioExtension } from '../../../../lib/catalogAdmin';
 import { validateMusicCover } from '../../../../lib/musicFeatures';
 export const dynamic='force-dynamic';
-async function adminClient(){
-  const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();
-  if(!user)return null;
-  const {data,error}=await supabase.rpc('is_music_admin');return !error&&data?supabase:null;
-}
 export async function GET(){
   const supabase=await adminClient();if(!supabase)return NextResponse.json({error:'Доступ только для администратора музыки.'},{status:403});
   const tracks=[];
   for(let offset=0;;offset+=500){
-    const {data,error}=await supabase.from('music_tracks').select('id,title,genre,is_published,source_url,attribution,license_code,cover_path,duration_seconds,music_artists(name),music_albums(title)').order('created_at',{ascending:false}).range(offset,offset+499);
+    const {data,error}=await supabase.from('music_tracks').select('id,title,genre,is_published,source_url,attribution,license_code,cover_path,duration_seconds,provider,external_id,music_artists(name),music_albums(title)').order('created_at',{ascending:false}).range(offset,offset+499);
     if(error)return NextResponse.json({error:'Не удалось загрузить каталог.'},{status:503});tracks.push(...data);if(data.length<500)break;
   }
   return NextResponse.json({tracks},{headers:{'Cache-Control':'no-store'}});

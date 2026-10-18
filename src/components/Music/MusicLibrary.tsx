@@ -30,7 +30,7 @@ export function MusicLibrary({ artistId, albumId, compact = false }: { artistId?
   const visibleAlbums = library.albums.filter(a => tracks.some(t => t.albumId === a.id) && matchesName(a.title));
   return <section className={styles.container}>
     <header className={styles.heading}><div>{compact ? <h2>{title}</h2> : <h1>{title}</h1>}
-      <p>{album ? `${library.artists.find(a => a.id === album.artistId)?.name} · ${album.year}` : artist ? 'Все песни исполнителя в библиотеке Melo' : 'Независимая музыка — слушайте прямо здесь'}</p></div>
+      <p>{album ? `${library.artists.find(a => a.id === album.artistId)?.name ?? ''}${album.year ? ' · ' + album.year : ''}` : artist ? 'Все песни исполнителя в библиотеке Melo' : 'Музыка — слушайте прямо здесь'}</p></div>
       {compact ? <Link className={styles.button} href="/#music">Вся музыка →</Link> : artistId || albumId ? <Link href="/#music">Библиотека</Link> : <Link className={styles.myMusicButton} href="/playlists"><span className={styles.myMusicIcon}><AppIcon name="music"/></span><span>Моя музыка</span><span className={styles.myMusicArrow} aria-hidden="true">→</span></Link>}
       {artistId&&<SaveMusicButton id={artistId} kind="artist"/>}{albumId&&<SaveMusicButton id={albumId} kind="album"/>}
     </header>
@@ -44,7 +44,7 @@ export function MusicLibrary({ artistId, albumId, compact = false }: { artistId?
       {visibleArtists.map(a => <Link className={styles.card} key={a.id} href={'/music/artists/' + a.id} onClick={() => setSearchQuery('')}><span className={styles.artistIcon}><AppIcon name="music" size={28}/></span><strong>{a.name}</strong><span>{library.tracks.filter(t => t.artistId === a.id).length} треков</span></Link>)}
     </div></section>}
     {!compact && !albumId && visibleAlbums.length > 0 && <section><h2>Альбомы</h2><div className={styles.cards}>
-      {visibleAlbums.map(a => <Link className={styles.card} key={a.id} href={'/music/albums/' + a.id} onClick={() => setSearchQuery('')}><strong>{a.title}</strong><span>{library.artists.find(ar => ar.id === a.artistId)?.name} · {a.year}</span></Link>)}
+      {visibleAlbums.map(a => <Link className={styles.card} key={a.id} href={'/music/albums/' + a.id} onClick={() => setSearchQuery('')}><strong>{a.title}</strong><span>{library.artists.find(ar => ar.id === a.artistId)?.name}{a.year ? ' · ' + a.year : ''}</span></Link>)}
     </div></section>}
     <div className={styles.heading}><h2>{searchQuery.trim() ? `Результаты: ${searchQuery}` : 'Треки'} <span className={styles.count}>{tracks.length}</span></h2>
       {tracks.length > 0 && <button className={styles.button} onClick={() => playTrack(tracks[0], tracks)}><AppIcon name="play" size={18}/> Слушать всё</button>}

@@ -7,7 +7,7 @@ export interface Track {
   albumId?: string;
   coverUrl: string;
   duration: number; // in seconds
-  source?: 'library';
+  source?: 'library' | 'audius';
   sourceUrl?: string;
   streamUrl?: string;
   genre?: string;

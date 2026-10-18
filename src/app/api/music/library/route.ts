@@ -10,7 +10,7 @@ export async function GET() {
     const rows: MusicTrackRow[] = [];
     for (let offset = 0; ; offset += 500) {
       const { data, error } = await supabase.from('music_tracks')
-        .select('id,title,artist_id,album_id,duration_seconds,genre,track_number,audio_path,cover_path,source_url,attribution,license_url,license_code,music_artists!inner(id,name,slug,source_url),music_albums(id,title,release_year)')
+        .select('id,title,artist_id,album_id,duration_seconds,genre,track_number,audio_path,cover_path,provider,external_id,external_cover_url,source_url,attribution,license_url,license_code,music_artists!inner(id,name,slug,source_url),music_albums(id,title,release_year)')
         .eq('is_published', true).order('id').range(offset, offset + 499);
       if (error) {
         const setupRequired = error.code === 'PGRST205' || error.code === '42P01';

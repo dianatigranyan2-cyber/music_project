@@ -5,7 +5,8 @@ export interface MusicAlbum { id: string; artistId: string; title: string; year:
 export interface MusicLibrary { tracks: Track[]; artists: MusicArtist[]; albums: MusicAlbum[] }
 export interface MusicTrackRow {
   id: string; title: string; artist_id: string; album_id: string | null;
-  duration_seconds: number; genre: string; track_number: number | null; audio_path: string;
+  duration_seconds: number; genre: string; track_number: number | null; audio_path: string | null;
+  provider?: 'storage' | 'audius'; external_id?: string | null; external_cover_url?: string | null;
   cover_path?: string | null; source_url: string; attribution: string; license_url: string; license_code: string;
   music_artists: { id: string; name: string; slug: string; source_url: string };
   music_albums: { id: string; title: string; release_year: number | null } | null;
@@ -22,8 +23,9 @@ export function mapLibrary(rows: MusicTrackRow[], storageBase: string): MusicLib
       id: row.id, title: row.title, artist: artist.name, artistId: artist.id,
       album: album?.title ?? 'Сингл', albumId: album?.id,
       duration: row.duration_seconds, genre: row.genre, trackNumber: row.track_number ?? undefined,
-      coverUrl: row.cover_path ? storageBase.replace(/\/music-audio$/, '/music-covers') + '/' + encodeURIComponent(row.cover_path) : '/music-placeholder.svg', source: 'library' as const,
-      streamUrl: storageBase + '/' + encodeURIComponent(row.audio_path),
+      coverUrl: row.provider === 'audius' ? row.external_cover_url?.startsWith('https://') ? row.external_cover_url : '/music-placeholder.svg' : row.cover_path ? storageBase.replace(/\/music-audio$/, '/music-covers') + '/' + encodeURIComponent(row.cover_path) : '/music-placeholder.svg',
+      source: row.provider === 'audius' ? 'audius' as const : 'library' as const,
+      streamUrl: row.provider === 'audius' ? `/api/music/audius/${row.id}/stream` : row.audio_path ? storageBase + '/' + encodeURIComponent(row.audio_path) : undefined,
       sourceUrl: row.source_url, attribution: row.attribution, licenseUrl: row.license_url, licenseCode: row.license_code,
     };
   });

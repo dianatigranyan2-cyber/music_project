@@ -18,7 +18,7 @@ export function parsePlayerSession(raw:string|null):PlayerSession|null {
   } catch{return null;}
 }
 export function resolvePlayerSession(session:PlayerSession,tracks:Track[]) {
-  const map=new Map(tracks.filter(t=>t.source==='library').map(t=>[t.id,t]));
+  const map=new Map(tracks.filter(t=>t.source==='library'||t.source==='audius').map(t=>[t.id,t]));
   const resolve=(ids:string[])=>ids.map(id=>map.get(id)).filter((t):t is Track=>!!t);
   const queue=resolve(session.queueIds);
   const track=map.get(session.trackId??'')??queue[0]??null;
