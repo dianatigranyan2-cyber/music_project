@@ -6,6 +6,8 @@ import { AppIcon } from '../../components/Icons/AppIcon';
 
 import { MusicMessageCard } from '../../components/Messages/MusicMessageCard';
 import { MusicMessagePicker } from '../../components/Messages/MusicMessagePicker';
+import { MESSAGE_EMOJIS, groupMessageReactions } from '../../lib/messageInteractions';
+import { useMessageReactions } from '../../hooks/useMessageReactions';
 import { parseMusicMessage } from '../../lib/musicMessages';
 import { useBlocking } from '../../context/BlockingContext';
 import { ChatActions } from '../../components/Messages/ChatActions';
@@ -45,6 +47,8 @@ interface Message {
   story_id: string | null;
 
   is_story_reply: boolean;
+  reply_to_id: string | null;
+  is_message_reply: boolean;
 
 }
 
@@ -83,6 +87,8 @@ interface DatabaseMessage {
   story_id: string | null;
 
   is_story_reply: boolean;
+  reply_to_id: string | null;
+  is_message_reply: boolean;
 
 }
 
@@ -191,6 +197,8 @@ function MessagesSessionPage() {
   const { isTyping, updateTyping, stopTyping } = useTypingIndicator(currentUser?.id ?? null, selectedChatId);
 
   const [inputMessage, setInputMessage] = useState('');
+  const [replyTo, setReplyTo] = useState<{chatId: string; id: string} | null>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
   const { data: blocks, ready: blocksReady } = useBlocking();
   const chatBlocked = !!selectedChatId && !!blocks?.peerIds.includes(selectedChatId);
   const [musicPickerFor, setMusicPickerFor] = useState<string | null>(null);
@@ -776,7 +784,7 @@ function MessagesSessionPage() {
 
         .select(
 
-          'id, sender_id, receiver_id, content, created_at, read_at, edited_at, story_id, is_story_reply')
+          'id, sender_id, receiver_id, content, created_at, read_at, edited_at, story_id, is_story_reply, reply_to_id, is_message_reply')
 
         .or(
 
@@ -851,6 +859,7 @@ function MessagesSessionPage() {
           story_id: message.story_id,
 
           is_story_reply: message.is_story_reply,
+          reply_to_id: message.reply_to_id, is_message_reply: message.is_message_reply,
 
         });
 
@@ -886,7 +895,7 @@ function MessagesSessionPage() {
 
         .select(
 
-          'id, sender_id, receiver_id, content, created_at, read_at, edited_at, story_id, is_story_reply')
+          'id, sender_id, receiver_id, content, created_at, read_at, edited_at, story_id, is_story_reply, reply_to_id, is_message_reply')
 
         .or(
 
@@ -939,6 +948,7 @@ function MessagesSessionPage() {
           story_id: message.story_id,
 
           is_story_reply: message.is_story_reply,
+          reply_to_id: message.reply_to_id, is_message_reply: message.is_message_reply,
 
         })
 
@@ -1195,6 +1205,7 @@ function MessagesSessionPage() {
             story_id: message.story_id,
 
             is_story_reply: message.is_story_reply,
+          reply_to_id: message.reply_to_id, is_message_reply: message.is_message_reply,
 
           };
 
@@ -1351,6 +1362,7 @@ function MessagesSessionPage() {
                     story_id: updatedMessage.story_id,
 
                     is_story_reply: updatedMessage.is_story_reply,
+                    reply_to_id: updatedMessage.reply_to_id, is_message_reply: updatedMessage.is_message_reply,
 
                   }
 
@@ -1546,7 +1558,17 @@ function MessagesSessionPage() {
 
 
 
+  const reactions = useMessageReactions(currentUser?.id ?? '', selectedChatId, messages.map(message => message.id));
+  const replyMessage = replyTo?.chatId === selectedChatId ? messages.find(message => message.id === replyTo.id) : undefined;
+  const menuMessage = messages.find(message => message.id === openMenuMessageId);
+  const canInteract = blocksReady && !chatBlocked && !sending;
+  const messageSummary = (message: Message) => parseMusicMessage(message.text) ? '♫ Музыка' : message.text || 'Ответ на историю';
+  function jumpToMessage(id: string) {
+    const row = document.getElementById('message-' + id);
+    row?.scrollIntoView({behavior: 'smooth', block: 'center'}); row?.focus({preventScroll: true});
+  }
   const handleOpenChat = (friendId: string) => {
+    setReplyTo(null); setOpenMenuMessageId(null); setEditingMessageId(null);
 
     listScrollRef.current =
 
@@ -1562,6 +1584,7 @@ function MessagesSessionPage() {
 
   const handleBack = () => {
 
+    setReplyTo(null); setOpenMenuMessageId(null); setEditingMessageId(null);
     setSelectedChatId(null);
 
 
@@ -1585,6 +1608,7 @@ function MessagesSessionPage() {
   // Send message.
 
   const sendContent = async (content: string): Promise<boolean> => {
+    if (replyTo?.chatId === selectedChatId && !replyMessage) {setSendError('Исходное сообщение удалено. Отмените ответ и отправьте сообщение заново.');return false;}
 
 
 
@@ -1612,12 +1636,13 @@ function MessagesSessionPage() {
           receiver_id: selectedChatId,
 
           content,
+          reply_to_id: replyMessage?.id ?? null,
 
         })
 
         .select(
 
-          'id, sender_id, receiver_id, content, created_at, read_at, edited_at, story_id, is_story_reply')
+          'id, sender_id, receiver_id, content, created_at, read_at, edited_at, story_id, is_story_reply, reply_to_id, is_message_reply')
 
         .single();
 
@@ -1658,6 +1683,7 @@ function MessagesSessionPage() {
         story_id: data.story_id ?? null,
 
         is_story_reply: data.is_story_reply ?? false,
+        reply_to_id: data.reply_to_id ?? null, is_message_reply: data.is_message_reply ?? false,
 
       };
 
@@ -2233,6 +2259,7 @@ function MessagesSessionPage() {
 
                       <div
 
+                        id={'message-' + msg.id} tabIndex={-1}
                         className={`${styles.messageRow} ${msg.sender === 'me' ? styles.myRow : styles.theirRow
 
                           }`}
@@ -2288,9 +2315,7 @@ function MessagesSessionPage() {
 
                             }`}
 
-                          {...(msg.sender === 'me'
-
-                            ? {
+                          {...{
 
                               onMouseDown: (e: React.MouseEvent<HTMLDivElement>) =>
 
@@ -2314,12 +2339,18 @@ function MessagesSessionPage() {
 
                                 handleBubbleContextMenu(e, msg.id),
 
-                            }
-
-                            : {})}
+                            }}
 
                         >
 
+                          <button type="button" className={styles.messageActionsButton} aria-label="Действия с сообщением" onMouseDown={event=>event.stopPropagation()} onTouchStart={event=>event.stopPropagation()} onClick={event=>{const rect=event.currentTarget.getBoundingClientRect();openMenu(msg.id,rect.right,rect.bottom);}}>⋯</button>
+                          {!isEditing && msg.is_message_reply && (()=>{
+                            const original = messages.find(message => message.id === msg.reply_to_id);
+                            return <button type="button" className={styles.replyQuote} disabled={!original} onMouseDown={event=>event.stopPropagation()} onTouchStart={event=>event.stopPropagation()} onClick={()=>original && jumpToMessage(original.id)}>
+                              <strong>{original ? original.sender === 'me' ? 'Вы' : activeFriend.display_name || activeFriend.username : 'Сообщение удалено'}</strong>
+                              <span>{original ? messageSummary(original) : 'Исходное сообщение недоступно'}</span>
+                            </button>;
+                          })()}
                           {isEditing ? (
 
                             <div className={styles.editForm}>
@@ -2521,6 +2552,7 @@ function MessagesSessionPage() {
 
 
 
+                          {!isEditing && <div className={styles.reactionChips} aria-label="Реакции на сообщение">{groupMessageReactions(reactions.rows,msg.id,currentUser?.id ?? '').map(group=><button key={group.emoji} type="button" aria-label={`${group.emoji}: ${group.count}${group.mine ? ', ваша реакция' : ''}`} aria-pressed={group.mine} disabled={!canInteract || reactions.busy} onMouseDown={event=>event.stopPropagation()} onTouchStart={event=>event.stopPropagation()} onClick={()=>void reactions.react(msg.id,group.mine ? null : group.emoji)}>{group.emoji} {group.count}</button>)}</div>}
                           {!isEditing && (
 
                             <div className={styles.messageInfo}>
@@ -2611,6 +2643,8 @@ function MessagesSessionPage() {
 
             {chatBlocked && <p role="status">Общение с этим пользователем недоступно. История сообщений сохранена.</p>}
             {sendError && <p role="alert">{sendError}</p>}
+            {reactions.error && <p role="alert">{reactions.error}</p>}
+            {replyTo?.chatId === selectedChatId && <div className={styles.replyComposer} role="status"><div><strong>Ответ: {replyMessage ? replyMessage.sender === 'me' ? 'Вы' : activeFriend.display_name || activeFriend.username : 'Сообщение удалено'}</strong><span>{replyMessage ? messageSummary(replyMessage) : 'Отмените ответ, чтобы продолжить'}</span></div><button type="button" aria-label="Отменить ответ" disabled={sending} onClick={()=>setReplyTo(null)}>×</button></div>}
             {musicPickerFor === selectedChatId && !chatBlocked && <MusicMessagePicker busy={sending} onSend={sendContent} onClose={() => setMusicPickerFor(null)} />}
             <form
 
@@ -2622,6 +2656,7 @@ function MessagesSessionPage() {
 
               <input
 
+                ref={messageInputRef}
                 type="text"
 
                 disabled={!blocksReady || chatBlocked || sending}
@@ -2661,7 +2696,7 @@ function MessagesSessionPage() {
 
             {/* Floating context menu – fixed viewport position */}
 
-            {openMenuMessageId && menuPos && (
+            {menuMessage && menuPos && (
 
               <div
 
@@ -2671,9 +2706,9 @@ function MessagesSessionPage() {
 
                   position: 'fixed',
 
-                  top: menuPos.y + 8,
+                  top: Math.max(8, Math.min(menuPos.y + 8, window.innerHeight - 230)),
 
-                  left: Math.min(menuPos.x, window.innerWidth - 170),
+                  left: Math.max(8, Math.min(menuPos.x, window.innerWidth - 296)),
 
                   zIndex: 9999,
 
@@ -2681,6 +2716,9 @@ function MessagesSessionPage() {
 
               >
 
+                <div className={styles.reactionPicker} aria-label="Выбрать реакцию">{MESSAGE_EMOJIS.map(emoji=><button key={emoji} type="button" aria-label={`Реакция ${emoji}`} aria-pressed={reactions.rows.some(row=>row.message_id===menuMessage.id && row.user_id===currentUser?.id && row.emoji===emoji)} disabled={!canInteract || reactions.busy} onClick={()=>{const mine=reactions.rows.some(row=>row.message_id===menuMessage.id && row.user_id===currentUser?.id && row.emoji===emoji);void reactions.react(menuMessage.id,mine ? null : emoji);setOpenMenuMessageId(null);}}>{emoji}</button>)}</div>
+                <button type="button" className={styles.menuItem} disabled={!canInteract} onClick={()=>{setReplyTo({chatId:selectedChatId!,id:menuMessage.id});setOpenMenuMessageId(null);messageInputRef.current?.focus();}}>↩ Ответить</button>
+                {menuMessage.sender === 'me' && <>
                 <button
 
                   type="button"
@@ -2727,7 +2765,7 @@ function MessagesSessionPage() {
 
                   onClick={() => {
 
-                    handleDeleteMessage(openMenuMessageId);
+                    handleDeleteMessage(menuMessage.id);
 
                     setMenuPos(null);
 
@@ -2741,6 +2779,7 @@ function MessagesSessionPage() {
 
                 </button>
 
+                </>}
               </div>
 
             )}

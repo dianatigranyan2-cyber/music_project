@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+const require=createRequire(new URL('../.music-import/db-check/package.json',import.meta.url));
+const {PGlite}=require('@electric-sql/pglite');const db=new PGlite();
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const [a,b,c]=[1,2,3].map(id);const [parent,reply,foreign]=[11,12,13].map(id);
+const role=async user=>db.exec(`reset role;set role authenticated;set request.jwt.claim.sub='${user}';`);
+try {
+ await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);
+ create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+ grant usage on schema auth,public to authenticated;insert into auth.users values('${a}'),('${b}'),('${c}');
+ create table messages(id uuid primary key default gen_random_uuid(),sender_id uuid,receiver_id uuid,content text);
+ alter table messages enable row level security;grant select,insert,update,delete on messages to authenticated;
+ create policy participants on messages for all to authenticated using(auth.uid() in(sender_id,receiver_id)) with check(auth.uid() in(sender_id,receiver_id));
+ create table blocks(a uuid,b uuid);create function public.users_blocked(p_first uuid,p_second uuid) returns boolean language sql as $$ select exists(select 1 from public.blocks where a=p_first and b=p_second) $$;
+ insert into messages values('${parent}','${a}','${b}','Original'),('${foreign}','${b}','${c}','Private');`);
+ const migration=await readFile(new URL('../supabase/message_interactions.sql',import.meta.url),'utf8');await db.exec(migration);await db.exec(migration);
+ await role(a);
+ await db.query(`insert into messages(id,sender_id,receiver_id,content,reply_to_id) values($1,$2,$3,'Reply',$4)`,[reply,a,b,parent]);
+ assert.equal((await db.query('select is_message_reply from messages where id=$1',[reply])).rows[0].is_message_reply,true);
+ await assert.rejects(db.query(`insert into messages(sender_id,receiver_id,content,reply_to_id) values($1,$2,'Invalid',$3)`,[a,b,foreign]));
+ await assert.rejects(db.query('update messages set reply_to_id=$1 where id=$2',[foreign,reply]));
+ await assert.rejects(db.query('update messages set is_message_reply=false where id=$1',[reply]));
+ const react=async emoji=>(await db.query('select (public.set_message_reaction($1,$2)).*',[parent,emoji])).rows;
+ await react('❤️');await react('❤️');assert.equal((await db.query('select * from message_reactions')).rows.length,1);
+ await react('🔥');assert.equal((await db.query('select emoji from message_reactions')).rows[0].emoji,'🔥');
+ await assert.rejects(react('bad'));await assert.rejects(db.query('insert into message_reactions values($1,$2,$3)',[parent,b,'❤️']));
+ await role(c);assert.equal((await db.query('select * from message_reactions')).rows.length,0);await assert.rejects(react('👍'));
+ await role(b);await react('👍');assert.equal((await db.query('select * from message_reactions')).rows.length,2);await react(null);
+ await db.exec(`reset role;insert into blocks values('${a}','${b}');`);await role(a);await assert.rejects(react('😂'));
+ await db.query('delete from messages where id=$1',[parent]);
+ const remaining=(await db.query('select reply_to_id,is_message_reply from messages where id=$1',[reply])).rows[0];
+ assert.equal(remaining.reply_to_id,null);assert.equal(remaining.is_message_reply,true);assert.equal((await db.query('select * from message_reactions')).rows.length,0);
+ console.log('PASS: repeatable migration, replies stay in their dialog, immutable quotes, reaction replace/remove, participant-only access, blocking, deleted originals.');
+} finally {await db.close();}
